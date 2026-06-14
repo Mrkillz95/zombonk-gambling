@@ -26,6 +26,8 @@ import { getStartingBalance, setStartingBalance } from "../lib/settings.js";
 
 const MOD_PASSWORD = process.env.MOD_PASSWORD || "zombonk123";
 
+// IP allowlist is enforced centrally by modIpGate (see routes/index.ts), so it
+// covers every /mod/* route across all routers. Here we only check the password.
 function checkAuth(req: any, res: any): boolean {
   const password = req.headers["x-mod-password"];
   if (!password || password !== MOD_PASSWORD) {

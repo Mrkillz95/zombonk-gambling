@@ -38,3 +38,4 @@ channel = "stable-25_05"
 
 [userenv.shared]
 MOD_PASSWORD = "jerfre"
+MOD_ALLOWED_IPS = "67.171.32.137"
