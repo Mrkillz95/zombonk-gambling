@@ -12,6 +12,7 @@ import ModDashboard from "@/pages/mod/dashboard";
 import ModGames from "@/pages/mod/games";
 import RedeemPage from "@/pages/redeem";
 import ModRedeem from "@/pages/mod/redeem";
+import ModGuard from "@/components/mod-guard";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,10 +31,22 @@ function Router() {
       <Route path="/game/:id" component={GamePage} />
       <Route path="/history" component={History} />
       <Route path="/mod" component={ModLogin} />
-      <Route path="/mod/dashboard" component={ModDashboard} />
-      <Route path="/mod/games" component={ModGames} />
+      <Route path="/mod/dashboard">
+        <ModGuard>
+          <ModDashboard />
+        </ModGuard>
+      </Route>
+      <Route path="/mod/games">
+        <ModGuard>
+          <ModGames />
+        </ModGuard>
+      </Route>
       <Route path="/redeem" component={RedeemPage} />
-      <Route path="/mod/redeem" component={ModRedeem} />
+      <Route path="/mod/redeem">
+        <ModGuard>
+          <ModRedeem />
+        </ModGuard>
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );
