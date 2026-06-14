@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, count } from "drizzle-orm";
 import { db, playersTable, gamesTable, gameOptionsTable, betsTable } from "@workspace/db";
 import {
   ListGamesQueryParams,
@@ -703,14 +703,43 @@ router.post("/games/:id/play", async (req, res): Promise<void> => {
     }
 
     // 4. Global per-player rig (overrides game-level force, lower priority than per-player game override)
-    const gRig = (player as any).globalRig as { forceOutcome?: string | null; payoutMult?: number | null; message?: string | null } | null | undefined;
+    type GlobalRig = {
+      forceOutcome?: string | null;
+      winRatio?: number | null;
+      payoutMult?: number | null;
+      applyAfterBets?: number | null;
+      message?: string | null;
+    };
+    const gRig = (player as any).globalRig as GlobalRig | null | undefined;
     if (gRig) {
-      if (gRig.forceOutcome === "lose") {
-        won = false; payout = 0; rigOverrode = true;
-        if (gRig.message) message = gRig.message;
-      } else if (gRig.forceOutcome === "win") {
-        won = true; payout = Math.floor(wager * (gRig.payoutMult || 2)); rigOverrode = true;
-        if (gRig.message) message = gRig.message;
+      // Check applyAfterBets threshold: skip global rig if player hasn't placed enough bets yet
+      let globalRigActive = true;
+      if (gRig.applyAfterBets != null && gRig.applyAfterBets > 0) {
+        const [betCount] = await db
+          .select({ total: count() })
+          .from(betsTable)
+          .where(eq(betsTable.playerId, playerId));
+        if ((betCount?.total ?? 0) < gRig.applyAfterBets) {
+          globalRigActive = false;
+        }
+      }
+
+      if (globalRigActive) {
+        // forceOutcome takes absolute priority
+        if (gRig.forceOutcome === "lose") {
+          won = false; payout = 0; rigOverrode = true;
+          if (gRig.message) message = gRig.message;
+        } else if (gRig.forceOutcome === "win") {
+          won = true; payout = Math.floor(wager * (gRig.payoutMult || 2)); rigOverrode = true;
+          if (gRig.message) message = gRig.message;
+        } else if (gRig.winRatio != null) {
+          // Probabilistic: winRatio 0–100 determines win chance
+          const shouldWin = Math.random() * 100 < gRig.winRatio;
+          won = shouldWin;
+          payout = won ? Math.floor(wager * (gRig.payoutMult || 2)) : 0;
+          rigOverrode = true;
+          if (gRig.message) message = gRig.message;
+        }
       }
     }
 

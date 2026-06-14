@@ -405,7 +405,9 @@ export const ModRigPlayerHeader = zod.object({
 
 export const ModRigPlayerBody = zod.object({
   "forceOutcome": zod.union([zod.literal('win'),zod.literal('lose'),zod.literal(null)]).nullish(),
+  "winRatio": zod.number().nullish().describe('Win probability 0-100. 0 = always lose, 100 = always win. Overridden by forceOutcome if set.'),
   "payoutMult": zod.number().nullish(),
+  "applyAfterBets": zod.number().nullish().describe('Rig only activates after the player has placed this many total bets across all games.'),
   "message": zod.string().nullish()
 })
 

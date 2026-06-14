@@ -739,8 +739,14 @@ components:
         forceOutcome:
           type: ["string", "null"]
           enum: ["win", "lose", null]
+        winRatio:
+          type: ["number", "null"]
+          description: "Win probability 0-100. 0 = always lose, 100 = always win. Overridden by forceOutcome if set."
         payoutMult:
           type: ["number", "null"]
+        applyAfterBets:
+          type: ["integer", "null"]
+          description: "Rig only activates after the player has placed this many total bets across all games."
         message:
           type: ["string", "null"]
 

@@ -10,8 +10,18 @@ import type { GlobalRigInputForceOutcome } from './globalRigInputForceOutcome';
 export interface GlobalRigInput {
   /** @nullable */
   forceOutcome?: GlobalRigInputForceOutcome;
+  /**
+     * Win probability 0-100. 0 = always lose, 100 = always win. Overridden by forceOutcome if set.
+     * @nullable
+     */
+  winRatio?: number | null;
   /** @nullable */
   payoutMult?: number | null;
+  /**
+     * Rig only activates after the player has placed this many total bets across all games.
+     * @nullable
+     */
+  applyAfterBets?: number | null;
   /** @nullable */
   message?: string | null;
 }

@@ -293,7 +293,9 @@ router.patch("/mod/players/:id/rig", async (req, res): Promise<void> => {
 
   const RigBody = z.object({
     forceOutcome: z.enum(["win", "lose"]).nullable().optional(),
+    winRatio: z.number().min(0).max(100).nullable().optional(),
     payoutMult: z.number().nullable().optional(),
+    applyAfterBets: z.number().int().min(0).nullable().optional(),
     message: z.string().nullable().optional(),
   });
 

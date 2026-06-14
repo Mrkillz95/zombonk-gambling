@@ -17,9 +17,19 @@ import { useToast } from "@/hooks/use-toast";
 
 type GlobalRig = {
   forceOutcome?: "win" | "lose" | null;
+  winRatio?: number | null;
   payoutMult?: number | null;
+  applyAfterBets?: number | null;
   message?: string | null;
 };
+
+function rigLabel(rig: GlobalRig | null): string | null {
+  if (!rig) return null;
+  if (rig.forceOutcome === "win") return "ALWAYS WIN";
+  if (rig.forceOutcome === "lose") return "ALWAYS LOSE";
+  if (rig.winRatio != null) return `${rig.winRatio}% WIN`;
+  return null;
+}
 
 export default function ModDashboard() {
   const [, setLocation] = useLocation();
@@ -67,33 +77,39 @@ export default function ModDashboard() {
     );
   };
 
+  const patchRig = (playerId: number, rig: GlobalRig) => {
+    setRigEdits(prev => ({ ...prev, [playerId]: rig }));
+  };
+
   const handleSaveRig = (playerId: number) => {
     const rig = rigEdits[playerId] ?? {};
     rigMutation.mutate(
       {
         id: playerId,
         data: {
-          forceOutcome: (rig.forceOutcome as "win" | "lose" | null | undefined) ?? null,
+          forceOutcome: rig.forceOutcome ?? null,
+          winRatio: rig.winRatio ?? null,
           payoutMult: rig.payoutMult ?? null,
+          applyAfterBets: rig.applyAfterBets ?? null,
           message: rig.message ?? null,
         },
       },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getModListPlayersQueryKey() });
-          toast({ title: "Global rig updated" });
+          toast({ title: "Global rig saved" });
         },
-        onError: () => toast({ title: "Failed to update rig", variant: "destructive" }),
+        onError: () => toast({ title: "Failed to save rig", variant: "destructive" }),
       }
     );
   };
 
   const handleClearRig = (playerId: number) => {
     rigMutation.mutate(
-      { id: playerId, data: { forceOutcome: null, payoutMult: null, message: null } },
+      { id: playerId, data: { forceOutcome: null, winRatio: null, payoutMult: null, applyAfterBets: null, message: null } },
       {
         onSuccess: () => {
-          setRigEdits((prev) => { const next = { ...prev }; delete next[playerId]; return next; });
+          setRigEdits(prev => { const n = { ...prev }; delete n[playerId]; return n; });
           queryClient.invalidateQueries({ queryKey: getModListPlayersQueryKey() });
           toast({ title: "Global rig cleared" });
         },
@@ -164,8 +180,11 @@ export default function ModDashboard() {
             )}
             <div className="divide-y divide-border">
               {players?.map(p => {
-                const rig = rigEdits[p.id] ?? (p.globalRig as GlobalRig | null) ?? {};
-                const hasActiveRig = (p.globalRig as GlobalRig | null)?.forceOutcome != null;
+                const savedRig = (p.globalRig as GlobalRig | null) ?? null;
+                const rig: GlobalRig = rigEdits[p.id] ?? savedRig ?? {};
+                const label = rigLabel(savedRig);
+                const hasActiveRig = !!label;
+
                 return (
                   <div key={p.id} data-testid={`row-player-${p.id}`} className="px-4 py-3 space-y-2">
                     {/* Main row */}
@@ -175,7 +194,8 @@ export default function ModDashboard() {
                           <p className="font-medium text-foreground truncate">{p.name}</p>
                           {hasActiveRig && (
                             <span className="text-xs bg-orange-500/20 text-orange-400 border border-orange-500/30 rounded px-1.5 py-0.5 font-mono">
-                              RIGGED
+                              {label}
+                              {savedRig?.applyAfterBets ? ` after ${savedRig.applyAfterBets}b` : ""}
                             </span>
                           )}
                         </div>
@@ -225,7 +245,7 @@ export default function ModDashboard() {
                                 if (rigOpenId === p.id) { setRigOpenId(null); }
                                 else {
                                   setRigOpenId(p.id);
-                                  setRigEdits(prev => ({ ...prev, [p.id]: (p.globalRig as GlobalRig | null) ?? {} }));
+                                  setRigEdits(prev => ({ ...prev, [p.id]: savedRig ?? {} }));
                                 }
                               }}
                               data-testid={`button-rig-${p.id}`}
@@ -239,64 +259,127 @@ export default function ModDashboard() {
 
                     {/* Global rig panel */}
                     {rigOpenId === p.id && (
-                      <div className="bg-background border border-border rounded-lg p-3 space-y-3 ml-0" data-testid={`panel-rig-${p.id}`}>
-                        <p className="text-xs font-semibold uppercase tracking-widest text-orange-400">Global Rig — applies to all games</p>
-                        <div className="flex flex-wrap gap-2 items-center">
-                          <span className="text-xs text-muted-foreground w-24">Force outcome:</span>
-                          {(["win", "lose", "normal"] as const).map(opt => (
-                            <button
-                              key={opt}
-                              className={`px-3 py-1 rounded text-xs font-semibold border transition-colors ${
-                                (rig.forceOutcome ?? "normal") === opt || (opt === "normal" && !rig.forceOutcome)
-                                  ? opt === "win" ? "bg-green-500/20 border-green-500/50 text-green-400"
-                                    : opt === "lose" ? "bg-red-500/20 border-red-500/50 text-red-400"
-                                    : "bg-primary/20 border-primary/50 text-primary"
-                                  : "bg-transparent border-border text-muted-foreground hover:border-foreground/30"
-                              }`}
-                              onClick={() => setRigEdits(prev => ({
-                                ...prev,
-                                [p.id]: { ...rig, forceOutcome: opt === "normal" ? null : opt }
-                              }))}
-                              data-testid={`rig-outcome-${opt}-${p.id}`}
-                            >
-                              {opt.toUpperCase()}
-                            </button>
-                          ))}
+                      <div className="bg-background border border-border rounded-lg p-4 space-y-4" data-testid={`panel-rig-${p.id}`}>
+                        <p className="text-xs font-semibold uppercase tracking-widest text-orange-400">Global Rig — all games</p>
+
+                        {/* Win/Loss Ratio */}
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-medium text-foreground">Win/Loss Ratio</span>
+                            <span className="text-xs font-mono text-muted-foreground">
+                              {rig.forceOutcome === "win" ? "Always Win (100%)"
+                                : rig.forceOutcome === "lose" ? "Always Lose (0%)"
+                                : rig.winRatio != null ? `${rig.winRatio}% win / ${100 - rig.winRatio}% lose`
+                                : "Not set"}
+                            </span>
+                          </div>
+
+                          {/* Preset buttons */}
+                          <div className="flex flex-wrap gap-1.5">
+                            {[
+                              { label: "OFF", action: () => patchRig(p.id, { ...rig, forceOutcome: null, winRatio: null }) },
+                              { label: "0%", action: () => patchRig(p.id, { ...rig, forceOutcome: "lose", winRatio: null }) },
+                              { label: "10%", action: () => patchRig(p.id, { ...rig, forceOutcome: null, winRatio: 10 }) },
+                              { label: "25%", action: () => patchRig(p.id, { ...rig, forceOutcome: null, winRatio: 25 }) },
+                              { label: "50%", action: () => patchRig(p.id, { ...rig, forceOutcome: null, winRatio: 50 }) },
+                              { label: "75%", action: () => patchRig(p.id, { ...rig, forceOutcome: null, winRatio: 75 }) },
+                              { label: "100%", action: () => patchRig(p.id, { ...rig, forceOutcome: "win", winRatio: null }) },
+                            ].map(({ label, action }) => {
+                              const isActive =
+                                label === "OFF" ? rig.forceOutcome == null && rig.winRatio == null
+                                : label === "0%" ? rig.forceOutcome === "lose"
+                                : label === "100%" ? rig.forceOutcome === "win"
+                                : rig.winRatio === parseInt(label);
+                              return (
+                                <button
+                                  key={label}
+                                  onClick={action}
+                                  className={`px-2.5 py-1 rounded text-xs font-semibold border transition-colors ${
+                                    isActive
+                                      ? label === "0%" ? "bg-red-500/20 border-red-500/50 text-red-400"
+                                        : label === "100%" ? "bg-green-500/20 border-green-500/50 text-green-400"
+                                        : label === "OFF" ? "bg-muted border-border text-muted-foreground"
+                                        : "bg-orange-500/20 border-orange-500/50 text-orange-400"
+                                      : "bg-transparent border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground"
+                                  }`}
+                                  data-testid={`rig-preset-${label.replace("%","pct")}-${p.id}`}
+                                >
+                                  {label}
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          {/* Custom % input */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground shrink-0">Custom %:</span>
+                            <Input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="1"
+                              placeholder="0–100"
+                              value={rig.winRatio != null && rig.forceOutcome == null ? String(rig.winRatio) : ""}
+                              onChange={e => {
+                                const v = e.target.value === "" ? null : Math.min(100, Math.max(0, parseInt(e.target.value, 10)));
+                                patchRig(p.id, { ...rig, forceOutcome: null, winRatio: isNaN(v as number) ? null : v });
+                              }}
+                              className="h-7 w-20 text-xs font-mono bg-background"
+                              data-testid={`rig-ratio-${p.id}`}
+                            />
+                            <span className="text-xs text-muted-foreground">%</span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs text-muted-foreground w-24">Payout mult:</span>
+
+                        {/* Activate after N bets */}
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <span className="text-xs text-muted-foreground shrink-0">Activate after:</span>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="1"
+                            placeholder="e.g. 10"
+                            value={rig.applyAfterBets ?? ""}
+                            onChange={e => patchRig(p.id, { ...rig, applyAfterBets: e.target.value ? parseInt(e.target.value, 10) : null })}
+                            className="h-7 w-24 text-xs font-mono bg-background"
+                            data-testid={`rig-after-bets-${p.id}`}
+                          />
+                          <span className="text-xs text-muted-foreground">total bets (0 = immediately)</span>
+                        </div>
+
+                        {/* Payout multiplier */}
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <span className="text-xs text-muted-foreground shrink-0">Payout mult:</span>
                           <Input
                             type="number"
                             min="0"
                             step="0.1"
                             placeholder="e.g. 2"
                             value={rig.payoutMult ?? ""}
-                            onChange={e => setRigEdits(prev => ({
-                              ...prev,
-                              [p.id]: { ...rig, payoutMult: e.target.value ? parseFloat(e.target.value) : null }
-                            }))}
+                            onChange={e => patchRig(p.id, { ...rig, payoutMult: e.target.value ? parseFloat(e.target.value) : null })}
                             className="h-7 w-24 text-xs font-mono bg-background"
                             data-testid={`rig-mult-${p.id}`}
                           />
-                          <span className="text-xs text-muted-foreground">(only applies on win)</span>
+                          <span className="text-xs text-muted-foreground">(on rigged wins)</span>
                         </div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs text-muted-foreground w-24">Message:</span>
+
+                        {/* Custom message */}
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <span className="text-xs text-muted-foreground shrink-0">Message:</span>
                           <Input
                             placeholder="Custom message shown to player"
                             value={rig.message ?? ""}
-                            onChange={e => setRigEdits(prev => ({
-                              ...prev,
-                              [p.id]: { ...rig, message: e.target.value || null }
-                            }))}
+                            onChange={e => patchRig(p.id, { ...rig, message: e.target.value || null })}
                             className="h-7 flex-1 min-w-40 text-xs bg-background"
                             data-testid={`rig-message-${p.id}`}
                           />
                         </div>
+
+                        {/* Actions */}
                         <div className="flex gap-2">
                           <Button
                             size="sm"
-                            className="h-7 text-xs"
+                            className="h-8 text-xs"
                             onClick={() => handleSaveRig(p.id)}
                             disabled={rigMutation.isPending}
                             data-testid={`button-save-rig-${p.id}`}
@@ -307,7 +390,7 @@ export default function ModDashboard() {
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="h-7 text-xs text-muted-foreground"
+                              className="h-8 text-xs text-red-400 hover:text-red-300"
                               onClick={() => handleClearRig(p.id)}
                               disabled={rigMutation.isPending}
                               data-testid={`button-clear-rig-${p.id}`}
