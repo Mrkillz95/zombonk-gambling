@@ -188,6 +188,34 @@ function threeCardWinHand(effMult: number) {
   for (const t of tiers) if (Math.abs(t.mult - effMult) < Math.abs(best.mult - effMult)) best = t;
   return best;
 }
+function pickRandom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)] as T;
+}
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j]!, a[i]!];
+  }
+  return a;
+}
+// Build a believable non-winning hand (no pair/straight/flush) with random cards
+// so forced poker losses don't show the identical cards every time.
+function randomHighCardHand(n: number) {
+  for (let attempt = 0; attempt < 50; attempt++) {
+    const vals = shuffle(Array.from({ length: 13 }, (_, i) => i + 1)).slice(0, n).sort((a, b) => a - b);
+    const isStraight =
+      vals.every((v, i) => i === 0 || v === vals[i - 1]! + 1) ||
+      (n === 3 && JSON.stringify(vals) === JSON.stringify([1, 12, 13])) ||
+      (n === 5 && JSON.stringify(vals) === JSON.stringify([1, 10, 11, 12, 13]));
+    const suits = vals.map(() => Math.floor(Math.random() * 4));
+    const isFlush = suits.every((s) => s === suits[0]);
+    if (!isStraight && !isFlush) return vals.map((v, i) => mkCard(v, suits[i]!));
+  }
+  return n === 3
+    ? [mkCard(2, 0), mkCard(7, 1), mkCard(11, 2)]
+    : [mkCard(2, 0), mkCard(5, 1), mkCard(9, 2), mkCard(11, 3), mkCard(13, 0)];
+}
 
 function reconcileForRig(o: {
   type: string; won: boolean; payout: number; wager: number;
@@ -195,27 +223,36 @@ function reconcileForRig(o: {
 }): { reels: string[]; details: any; message: string } {
   const { type, won, payout, wager, config, options, selectedOpt, pick } = o;
   const effMult = wager > 0 ? Math.max(1.1, round2(payout / wager)) : 2;
-  const otherOpt = (selectedOpt ? options.find((x) => x.id !== selectedOpt.id) : options[0]) ?? selectedOpt;
+  // For a forced loss, land on a RANDOM non-selected option so repeated rigs
+  // don't always show the identical losing result.
+  const losers = options.filter((x) => !selectedOpt || x.id !== selectedOpt.id);
+  const otherOpt = (losers.length ? pickRandom(losers) : options[0]) ?? selectedOpt;
 
   switch (type) {
     case "slots": {
-      const items = config.items || [
+      const items: any[] = (config.items && config.items.length) ? config.items : [
         { label: "Cherry", emoji: "CH", weight: 5, payout: 2 }, { label: "Bar", emoji: "BR", weight: 4, payout: 3 },
         { label: "Seven", emoji: "7", weight: 2, payout: 5 }, { label: "Skull", emoji: "SK", weight: 1, payout: 10 },
       ];
       const reelCount = config.reelCount || 3;
       if (won) {
-        let chosen = items[0];
-        for (const x of items) if (Math.abs((x.payout || 2) - effMult) < Math.abs((chosen.payout || 2) - effMult)) chosen = x;
+        // Among symbols whose payout best matches the win size, pick at random so
+        // repeated wins don't always show the same symbol.
+        let bestDiff = Infinity;
+        for (const x of items) bestDiff = Math.min(bestDiff, Math.abs((x.payout || 2) - effMult));
+        const chosen = pickRandom(items.filter((x: any) => Math.abs((x.payout || 2) - effMult) === bestDiff));
         const spun = Array.from({ length: reelCount }, () => chosen);
         return { reels: spun.map((s: any) => s.label), details: { reels: spun.map((s: any) => ({ label: s.label, emoji: s.emoji })) }, message: `Jackpot! All ${chosen.label}s! Won ${payout} coins!` };
       }
-      // The client recomputes win = all reels equal, so a forced loss MUST have
-      // at least two different labels. Guard degenerate single-symbol configs by
-      // injecting a synthetic mismatch symbol.
-      const a = items[0] || { label: "Cherry", emoji: "CH" };
-      const diff = items.find((x: any) => x.label !== a.label) || { label: "Miss ❌", emoji: "X" };
-      const spun = Array.from({ length: reelCount }, (_, i) => (i === 0 ? a : diff));
+      // The client recomputes win = all reels equal, so a forced loss MUST NOT be
+      // all-equal. Spin random symbols, then guarantee a mismatch (covers the
+      // degenerate single-symbol config too).
+      const pool: any[] = items.length >= 2 ? items : [...items, { label: "Miss ❌", emoji: "X" }];
+      const spun = Array.from({ length: reelCount }, () => pickRandom(pool));
+      if (spun.every((s: any) => s.label === spun[0].label)) {
+        const alt = pool.find((x: any) => x.label !== spun[0].label) || { label: "Miss ❌", emoji: "X" };
+        spun[Math.floor(Math.random() * reelCount)] = alt;
+      }
       return { reels: spun.map((s: any) => s.label), details: { reels: spun.map((s: any) => ({ label: s.label, emoji: s.emoji })) }, message: `No match. Better luck next time!` };
     }
     case "coin_flip": case "card_draw": {
@@ -237,14 +274,14 @@ function reconcileForRig(o: {
       const min = config.min || 1; const max = config.max || 10;
       const picked = parseInt(pick || "0", 10) || min;
       let drawn = picked;
-      if (!won) { drawn = picked > min ? picked - 1 : picked + 1; if (drawn < min) drawn = min; if (drawn > max) drawn = max; if (drawn === picked) drawn = picked === max ? min : max; }
+      if (!won && max > min) { do { drawn = min + Math.floor(Math.random() * (max - min + 1)); } while (drawn === picked); }
       return { reels: [String(drawn)], details: { picked, drawn, min, max }, message: won ? `Drew ${drawn}! You picked ${picked} — correct! Won ${payout} coins!` : `Drew ${drawn}. You picked ${picked}. No win.` };
     }
     case "jackpot": {
       const tickets = config.tickets || 100;
       const picked = parseInt(pick || "0", 10) || 1;
       let drawn = picked;
-      if (!won) { drawn = picked > 1 ? picked - 1 : 2; if (drawn > tickets) drawn = tickets; if (drawn === picked) drawn = picked === tickets ? 1 : tickets; }
+      if (!won && tickets > 1) { do { drawn = 1 + Math.floor(Math.random() * tickets); } while (drawn === picked); }
       return { reels: [String(drawn)], details: { picked, drawn, tickets, jackpot: config.jackpot || payout }, message: won ? `Winning ticket: #${drawn}! You held #${picked}. JACKPOT! Won ${payout} coins!` : `Winning ticket: #${drawn}. You held #${picked}. Better luck next time!` };
     }
     case "dice": {
@@ -252,9 +289,11 @@ function reconcileForRig(o: {
       const minSum = numDice; const maxSum = sides * numDice;
       const picked = parseInt(pick || "0", 10) || minSum;
       let target = picked;
-      if (!won) { target = picked > minSum ? minSum : maxSum; if (target === picked) target = picked === minSum ? Math.min(maxSum, minSum + 1) : minSum; }
+      if (!won && maxSum > minSum) { do { target = minSum + Math.floor(Math.random() * (maxSum - minSum + 1)); } while (target === picked); }
+      // Distribute the target sum across dice in random order so the individual
+      // dice vary instead of always front-loading.
       const rolls = Array(numDice).fill(1); let rem = target - numDice;
-      for (let i = 0; i < numDice && rem > 0; i++) { const add = Math.min(sides - 1, rem); rolls[i] += add; rem -= add; }
+      for (const i of shuffle(Array.from({ length: numDice }, (_, k) => k))) { if (rem <= 0) break; const add = Math.min(sides - 1, rem); rolls[i] += add; rem -= add; }
       const drawn = rolls.reduce((x: number, y: number) => x + y, 0);
       return { reels: [String(drawn)], details: { picked, drawn, rolls, sides, numDice }, message: won ? `Rolled ${rolls.join("+")} = ${drawn}! You picked ${picked}. Won ${payout} coins!` : `Rolled ${rolls.join("+")} = ${drawn}. You picked ${picked}. No win.` };
     }
@@ -275,38 +314,49 @@ function reconcileForRig(o: {
       return { reels: [String(drawn)], details: { shown, drawn, picked: selectedOpt?.label }, message: won ? `Shown: ${shown} → Drew ${drawn}. ${selectedOpt?.label} is correct! Won ${payout} coins!` : `Shown: ${shown} → Drew ${drawn}. ${selectedOpt?.label} is wrong. No win.` };
     }
     case "wheel": {
-      const sections = config.sections || [
+      const sections = (config.sections && config.sections.length) ? config.sections : [
         { label: "Lose", weight: 5, payout: 0 }, { label: "2x", weight: 3, payout: 2 },
         { label: "5x", weight: 1, payout: 5 }, { label: "10x", weight: 0.5, payout: 10 },
       ];
       let landed: any;
       if (won) {
-        landed = sections.find((s: any) => (s.payout || 0) > 0) || { label: `${effMult}x`, payout: effMult };
-        for (const s of sections) if ((s.payout || 0) > 0 && Math.abs(s.payout - effMult) < Math.abs((landed.payout || 0) - effMult)) landed = s;
+        const winners = sections.filter((s: any) => (s.payout || 0) > 0);
+        if (winners.length) {
+          let bestDiff = Infinity;
+          for (const s of winners) bestDiff = Math.min(bestDiff, Math.abs((s.payout || 0) - effMult));
+          landed = pickRandom(winners.filter((s: any) => Math.abs((s.payout || 0) - effMult) === bestDiff));
+        } else {
+          landed = { label: `${effMult}x`, payout: effMult };
+        }
       } else {
-        landed = sections.find((s: any) => (s.payout || 0) <= 0) || { label: "Lose", payout: 0 };
+        const losing = sections.filter((s: any) => (s.payout || 0) <= 0);
+        landed = losing.length ? pickRandom(losing) : { label: "Lose", payout: 0 };
       }
       return { reels: [landed.label], details: { landed }, message: won ? `Wheel stopped on ${landed.label}! Won ${payout} coins!` : `Wheel stopped on ${landed.label}. No win this time.` };
     }
     case "plinko": {
       const rows = config.rows || 8;
-      const mults: number[] = config.multipliers || [0.3, 0.5, 1, 2, 5, 2, 1, 0.5, 0.3];
+      const mults: number[] = (config.multipliers && config.multipliers.length) ? config.multipliers : [0.3, 0.5, 1, 2, 5, 2, 1, 0.5, 0.3];
       const maxSlot = Math.min(mults.length - 1, rows);
       // The client recomputes win = (multiplier > 1) at the landed slot, so the
-      // chosen slot's multiplier must agree with the forced result. Prefer a
-      // matching slot; if the config has none, fall back to the highest (win) or
-      // lowest (loss) multiplier so the visual is as consistent as possible.
+      // chosen slot's multiplier must agree with the forced result. Land on a
+      // RANDOM eligible slot (winning slots closest to the win size for wins, any
+      // <=1 slot for losses) so repeated rigs vary instead of always the same
+      // slot. If the config has no eligible slot, fall back to the most extreme.
+      const idx = Array.from({ length: maxSlot + 1 }, (_, i) => i);
       let slot = 0;
       if (won) {
-        let best = -1;
-        for (let i = 0; i <= maxSlot; i++) if ((mults[i] ?? 0) > 1) { if (best < 0 || Math.abs(mults[i]! - effMult) < Math.abs(mults[best]! - effMult)) best = i; }
-        if (best < 0) { best = 0; for (let i = 1; i <= maxSlot; i++) if ((mults[i] ?? 0) > (mults[best] ?? 0)) best = i; }
-        slot = best;
+        const winSlots = idx.filter((i) => (mults[i] ?? 0) > 1);
+        if (winSlots.length) {
+          let bestDiff = Infinity;
+          for (const i of winSlots) bestDiff = Math.min(bestDiff, Math.abs(mults[i]! - effMult));
+          slot = pickRandom(winSlots.filter((i) => Math.abs(mults[i]! - effMult) === bestDiff));
+        } else {
+          slot = idx.reduce((b, i) => ((mults[i] ?? 0) > (mults[b] ?? 0) ? i : b), 0);
+        }
       } else {
-        let f = -1;
-        for (let i = 0; i <= maxSlot; i++) if ((mults[i] ?? 0) <= 1) { f = i; break; }
-        if (f < 0) { f = 0; for (let i = 1; i <= maxSlot; i++) if ((mults[i] ?? 0) < (mults[f] ?? 0)) f = i; }
-        slot = f;
+        const loseSlots = idx.filter((i) => (mults[i] ?? 0) <= 1);
+        slot = loseSlots.length ? pickRandom(loseSlots) : idx.reduce((b, i) => ((mults[i] ?? 0) < (mults[b] ?? 0) ? i : b), 0);
       }
       const multiplier = mults[slot] ?? 1;
       const path = Array.from({ length: rows }, (_, i) => (i < slot ? "R" : "L"));
@@ -315,7 +365,9 @@ function reconcileForRig(o: {
     case "crash": {
       const target = parseFloat(pick || "2") || 2;
       let crashPoint: number;
-      if (won) crashPoint = round2(Math.max(target, effMult));
+      // Win: crash somewhere at/above the cashout target (random margin so it
+      // varies). Loss: crash somewhere below the target (already random).
+      if (won) crashPoint = round2(Math.max(target, effMult) * (1 + Math.random() * 0.6));
       else { crashPoint = round2(Math.max(1, 1 + Math.random() * Math.max(0.1, target - 1) * 0.9)); if (crashPoint >= target) crashPoint = round2(Math.max(1, target - 0.1)); }
       return { reels: [`${crashPoint}x`], details: { crashPoint, target }, message: won ? `🚀 Cashed out at ${target}x! Crashed at ${crashPoint}x. Won ${payout} coins!` : `💥 Crashed at ${crashPoint}x before your ${target}x target. No win.` };
     }
@@ -323,26 +375,36 @@ function reconcileForRig(o: {
       const spots = parseInt(pick || "1", 10) || 1;
       const pool = config.pool || 80; const drawCount = config.draw || 20;
       const playerNumbers = Array.from({ length: spots }, (_, i) => i + 1);
+      const otherNumbers = Array.from({ length: Math.max(0, pool - spots) }, (_, i) => spots + 1 + i);
       let drawn: number[]; let matches: number;
-      if (won) { drawn = Array.from({ length: drawCount }, (_, i) => i + 1); matches = spots; }
-      else { drawn = []; for (let n = pool; n > spots && drawn.length < drawCount; n--) drawn.push(n); matches = 0; }
+      if (won) {
+        // All player numbers hit, plus random fillers from the rest.
+        const fillers = shuffle(otherNumbers).slice(0, Math.max(0, drawCount - spots));
+        drawn = [...playerNumbers, ...fillers]; matches = spots;
+      } else {
+        // Draw only from numbers the player did NOT pick → zero matches, varied.
+        drawn = shuffle(otherNumbers).slice(0, Math.min(drawCount, otherNumbers.length)); matches = 0;
+      }
       const multiplier = won && wager > 0 ? round2(payout / wager) : 0;
       return { reels: [`${matches}/${spots}`], details: { spots, playerNumbers, drawn: [...drawn].sort((x, y) => x - y), matches, multiplier }, message: won ? `${matches} of ${spots} matched! ${multiplier}x — Won ${payout} coins!` : `Only ${matches} of ${spots} matched. No win.` };
     }
     case "scratch_card": {
-      const symbols = config.symbols || [
+      const symbols: any[] = (config.symbols && config.symbols.length) ? config.symbols : [
         { label: "Cherry 🍒", weight: 8, payout: 3 }, { label: "Bell 🔔", weight: 5, payout: 5 },
         { label: "Coin 🪙", weight: 4, payout: 8 }, { label: "Diamond 💎", weight: 2, payout: 15 }, { label: "Lucky 7 ⑦", weight: 1, payout: 30 },
       ];
       if (won) {
-        let chosen = symbols[0];
-        for (const s of symbols) if (Math.abs((s.payout || 2) - effMult) < Math.abs((chosen.payout || 2) - effMult)) chosen = s;
+        // Random winning symbol among those whose payout best fits the win size.
+        let bestDiff = Infinity;
+        for (const s of symbols) bestDiff = Math.min(bestDiff, Math.abs((s.payout || 2) - effMult));
+        const chosen = pickRandom(symbols.filter((s: any) => Math.abs((s.payout || 2) - effMult) === bestDiff));
         const arr = [chosen, chosen, chosen];
         return { reels: arr.map((s: any) => s.label), details: { symbols: arr, allMatch: true, twoMatch: false }, message: `Three ${chosen.label}! ${chosen.payout}x — Won ${payout} coins!` };
       }
       // The client recomputes allMatch/twoMatch from the symbols, so a forced
       // loss MUST have three DISTINCT labels (no two equal). Build a distinct
-      // pool, padding with synthetic blanks if the config has fewer than 3.
+      // pool, padding with synthetic blanks if the config has fewer than 3, then
+      // pick three at random so the losing card varies each time.
       const distinct: any[] = [];
       for (const s of symbols) if (!distinct.find((d) => d.label === s.label)) distinct.push(s);
       const fillers = [
@@ -350,30 +412,36 @@ function reconcileForRig(o: {
         { label: "Dud 🚫", weight: 1, payout: 0 },
         { label: "Blank ⬜", weight: 1, payout: 0 },
       ].filter((f) => !distinct.find((d) => d.label === f.label));
-      const pool = [...distinct, ...fillers];
-      const arr = [pool[0], pool[1], pool[2]];
+      const arr = shuffle([...distinct, ...fillers]).slice(0, 3);
       return { reels: arr.map((s: any) => s.label), details: { symbols: arr, allMatch: false, twoMatch: false }, message: `No match: ${arr[0].label}, ${arr[1].label}, ${arr[2].label}. Better luck!` };
     }
     case "mines": {
       const mineCount = parseInt(pick || "3", 10) || 3;
       const gridSize = 25;
       const mineMult = won && wager > 0 ? round2(payout / wager) : round2((gridSize / (gridSize - mineCount)) * 0.95);
-      const minePositions = new Set<number>(); let seed = 1;
-      while (minePositions.size < Math.min(mineCount, gridSize - 1)) { minePositions.add((seed * 7) % gridSize); seed++; }
+      // Random mine layout + random picked tile so repeated rigs don't show the
+      // same board every time.
+      const minePositions = new Set<number>();
+      while (minePositions.size < Math.min(mineCount, gridSize - 1)) { minePositions.add(Math.floor(Math.random() * gridSize)); }
       const safeTiles = Array.from({ length: gridSize }, (_, i) => i).filter((i) => !minePositions.has(i));
-      const tileIndex = won ? safeTiles[0]! : [...minePositions][0]!;
+      const tileIndex = won ? pickRandom(safeTiles) : pickRandom([...minePositions]);
       const grid = Array.from({ length: gridSize }, (_, i) => (minePositions.has(i) ? (i === tileIndex ? "picked_mine" : "mine") : (i === tileIndex ? "picked_safe" : "safe")));
       return { reels: [won ? "SAFE 💎" : "MINE 💣"], details: { mineCount, tileIndex, minePositions: [...minePositions], grid, isSafe: won, multiplier: mineMult }, message: won ? `Safe! ${mineCount} mines on the board. ${mineMult}x — Won ${payout} coins!` : `💥 Boom! Hit a mine. ${mineCount} mines. No win.` };
     }
     case "blackjack": {
-      const playerCards = won ? bjHandForTotal(20) : bjHandForTotal(18);
-      const dealerCards = won ? bjHandForTotal(18) : bjHandForTotal(20);
+      // Random non-bust totals where the winner is strictly ahead, for variety.
+      const hi = pickRandom([19, 20, 21]); const lo = pickRandom([17, 18]);
+      const playerCards = won ? bjHandForTotal(hi) : bjHandForTotal(lo);
+      const dealerCards = won ? bjHandForTotal(lo) : bjHandForTotal(hi);
       const playerTotal = bjHandValue(playerCards); const dealerTotal = bjHandValue(dealerCards);
       return { reels: playerCards.map((c) => `${c.face}${c.suit}`), details: { playerCards, dealerCards, playerTotal, dealerTotal, isHit: false }, message: won ? `${playerTotal} beats dealer's ${dealerTotal}! Won ${payout} coins!` : `Dealer's ${dealerTotal} beats your ${playerTotal}. No win.` };
     }
     case "war": {
-      const pc = won ? randCard(13) : randCard(2);
-      const dc = won ? randCard(2) : randCard(13);
+      // Random card values where the winner's card outranks the loser's.
+      const hiV = 2 + Math.floor(Math.random() * 12); // 2..13
+      const loV = 1 + Math.floor(Math.random() * (hiV - 1)); // 1..hiV-1
+      const pc = won ? randCard(hiV) : randCard(loV);
+      const dc = won ? randCard(loV) : randCard(hiV);
       return { reels: [`${pc.face}${pc.suit}`, "vs", `${dc.face}${dc.suit}`], details: { playerCard: pc, dealerCard: dc, war: false }, message: won ? `Your ${pc.face}${pc.suit} beats ${dc.face}${dc.suit}! Won ${payout} coins!` : `Dealer's ${dc.face}${dc.suit} beats your ${pc.face}${pc.suit}. No win.` };
     }
     case "baccarat": {
@@ -382,19 +450,21 @@ function reconcileForRig(o: {
       const outcome = won ? betType : (betType === "player" ? "banker" : "player");
       const mkScore = (s: number) => [mkCard(s === 0 ? 10 : s, Math.floor(Math.random() * 4)), mkCard(13, Math.floor(Math.random() * 4))];
       let pScore: number; let bScore: number;
-      if (outcome === "tie") { pScore = 7; bScore = 7; } else if (outcome === "player") { pScore = 8; bScore = 5; } else { pScore = 5; bScore = 8; }
+      if (outcome === "tie") { pScore = Math.floor(Math.random() * 10); bScore = pScore; }
+      else if (outcome === "player") { pScore = 6 + Math.floor(Math.random() * 4); bScore = Math.floor(Math.random() * pScore); }
+      else { bScore = 6 + Math.floor(Math.random() * 4); pScore = Math.floor(Math.random() * bScore); }
       const playerCards = mkScore(pScore); const bankerCards = mkScore(bScore);
       const winner = outcome.charAt(0).toUpperCase() + outcome.slice(1);
       return { reels: [`P:${pScore}`, `B:${bScore}`], details: { playerCards, bankerCards, playerScore: pScore, bankerScore: bScore, outcome, betType }, message: won ? `${winner} wins (P:${pScore} B:${bScore})! Won ${payout} coins!` : `${winner} wins (P:${pScore} B:${bScore}). You bet on ${betType}. No win.` };
     }
     case "video_poker": {
       if (won) { const h = pokerWinHand(effMult); return { reels: [h.name], details: { cards: h.cards, handName: h.name, multiplier: h.mult }, message: `${h.name}! Won ${payout} coins!` }; }
-      const cards = [mkCard(2,0), mkCard(5,1), mkCard(9,2), mkCard(11,3), mkCard(13,0)];
+      const cards = randomHighCardHand(5);
       return { reels: ["No Hand"], details: { cards, handName: "No Hand", multiplier: 0 }, message: `No Hand. No winning hand this time.` };
     }
     case "three_card_poker": {
       if (won) { const h = threeCardWinHand(effMult); return { reels: [h.name], details: { cards: h.cards, handName: h.name, multiplier: h.mult }, message: `${h.name}! Won ${payout} coins!` }; }
-      const cards = [mkCard(2,0), mkCard(7,1), mkCard(11,2)];
+      const cards = randomHighCardHand(3);
       return { reels: ["High Card"], details: { cards, handName: "High Card", multiplier: 0 }, message: `High Card only. No winning hand.` };
     }
     default:
