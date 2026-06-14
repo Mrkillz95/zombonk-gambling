@@ -32,6 +32,8 @@ export interface ModPlayer {
   balance: number;
   /** @nullable */
   globalRig?: ModPlayerGlobalRig;
+  /** @nullable */
+  ipAddress?: string | null;
   createdAt: string;
 }
 
@@ -68,10 +70,10 @@ export interface GlobalRigInput {
   /** @nullable */
   payoutMult?: number | null;
   /**
-     * Rig only activates after the player has placed this many total bets across all games.
+     * Rig only activates once the player's balance reaches at least this many coins.
      * @nullable
      */
-  applyAfterBets?: number | null;
+  applyAfterBalance?: number | null;
   /** @nullable */
   message?: string | null;
 }

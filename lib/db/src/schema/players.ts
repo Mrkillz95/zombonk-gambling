@@ -9,6 +9,7 @@ export const playersTable = pgTable("players", {
   password: text("password").notNull().default(""),
   balance: integer("balance").notNull().default(0),
   globalRig: jsonb("global_rig"),
+  ipAddress: text("ip_address"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

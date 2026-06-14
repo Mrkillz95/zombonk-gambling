@@ -9,6 +9,15 @@ import {
 
 const router: IRouter = Router();
 
+function getClientIp(req: { headers: Record<string, unknown>; ip?: string }): string | null {
+  const fwd = req.headers["x-forwarded-for"];
+  if (typeof fwd === "string" && fwd.length > 0) {
+    const first = fwd.split(",")[0]?.trim();
+    if (first) return first;
+  }
+  return req.ip ?? null;
+}
+
 const RegisterBody = z.object({
   name: z.string().min(1).max(32),
   discordUser: z.string().optional(),
@@ -30,6 +39,8 @@ router.post("/players", async (req, res): Promise<void> => {
 
   const { name, discordUser, password } = parsed.data;
 
+  const ip = getClientIp(req);
+
   const existing = await db
     .select()
     .from(playersTable)
@@ -41,9 +52,23 @@ router.post("/players", async (req, res): Promise<void> => {
     return;
   }
 
+  if (ip) {
+    const ipExisting = await db
+      .select({ id: playersTable.id })
+      .from(playersTable)
+      .where(eq(playersTable.ipAddress, ip))
+      .limit(1);
+    if (ipExisting[0]) {
+      res.status(403).json({
+        error: "Unable to create an account right now. If you already have one, please log in.",
+      });
+      return;
+    }
+  }
+
   const [player] = await db
     .insert(playersTable)
-    .values({ name, discordUser: discordUser ?? null, password })
+    .values({ name, discordUser: discordUser ?? null, password, ipAddress: ip })
     .returning();
 
   res.json({
@@ -79,6 +104,14 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   if (player.password !== password) {
     res.status(401).json({ error: "Invalid username or password" });
     return;
+  }
+
+  const ip = getClientIp(req);
+  if (ip && player.ipAddress !== ip) {
+    await db
+      .update(playersTable)
+      .set({ ipAddress: ip })
+      .where(eq(playersTable.id, player.id));
   }
 
   res.json({

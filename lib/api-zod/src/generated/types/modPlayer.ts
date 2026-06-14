@@ -16,5 +16,7 @@ export interface ModPlayer {
   balance: number;
   /** @nullable */
   globalRig?: ModPlayerGlobalRig;
+  /** @nullable */
+  ipAddress?: string | null;
   createdAt: string;
 }

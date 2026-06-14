@@ -19,7 +19,7 @@ type GlobalRig = {
   forceOutcome?: "win" | "lose" | null;
   winRatio?: number | null;
   payoutMult?: number | null;
-  applyAfterBets?: number | null;
+  applyAfterBalance?: number | null;
   message?: string | null;
 };
 
@@ -90,7 +90,7 @@ export default function ModDashboard() {
           forceOutcome: rig.forceOutcome ?? null,
           winRatio: rig.winRatio ?? null,
           payoutMult: rig.payoutMult ?? null,
-          applyAfterBets: rig.applyAfterBets ?? null,
+          applyAfterBalance: rig.applyAfterBalance ?? null,
           message: rig.message ?? null,
         },
       },
@@ -106,7 +106,7 @@ export default function ModDashboard() {
 
   const handleClearRig = (playerId: number) => {
     rigMutation.mutate(
-      { id: playerId, data: { forceOutcome: null, winRatio: null, payoutMult: null, applyAfterBets: null, message: null } },
+      { id: playerId, data: { forceOutcome: null, winRatio: null, payoutMult: null, applyAfterBalance: null, message: null } },
       {
         onSuccess: () => {
           setRigEdits(prev => { const n = { ...prev }; delete n[playerId]; return n; });
@@ -195,7 +195,7 @@ export default function ModDashboard() {
                           {hasActiveRig && (
                             <span className="text-xs bg-orange-500/20 text-orange-400 border border-orange-500/30 rounded px-1.5 py-0.5 font-mono">
                               {label}
-                              {savedRig?.applyAfterBets ? ` after ${savedRig.applyAfterBets}b` : ""}
+                              {savedRig?.applyAfterBalance ? ` ≥${savedRig.applyAfterBalance}` : ""}
                             </span>
                           )}
                         </div>
@@ -209,6 +209,11 @@ export default function ModDashboard() {
                           <span className="text-xs text-muted-foreground font-mono" data-testid={`text-password-${p.id}`}>
                             🔑 {p.password || <em className="opacity-50">no password</em>}
                           </span>
+                          {p.ipAddress && (
+                            <span className="text-xs text-muted-foreground font-mono" data-testid={`text-ip-${p.id}`}>
+                              🌐 {p.ipAddress}
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
@@ -331,20 +336,20 @@ export default function ModDashboard() {
                           </div>
                         </div>
 
-                        {/* Activate after N bets */}
+                        {/* Activate at balance threshold */}
                         <div className="flex items-center gap-3 flex-wrap">
-                          <span className="text-xs text-muted-foreground shrink-0">Activate after:</span>
+                          <span className="text-xs text-muted-foreground shrink-0">Activate at balance:</span>
                           <Input
                             type="number"
                             min="0"
                             step="1"
-                            placeholder="e.g. 10"
-                            value={rig.applyAfterBets ?? ""}
-                            onChange={e => patchRig(p.id, { ...rig, applyAfterBets: e.target.value ? parseInt(e.target.value, 10) : null })}
+                            placeholder="e.g. 5000"
+                            value={rig.applyAfterBalance ?? ""}
+                            onChange={e => patchRig(p.id, { ...rig, applyAfterBalance: e.target.value ? parseInt(e.target.value, 10) : null })}
                             className="h-7 w-24 text-xs font-mono bg-background"
-                            data-testid={`rig-after-bets-${p.id}`}
+                            data-testid={`rig-after-balance-${p.id}`}
                           />
-                          <span className="text-xs text-muted-foreground">total bets (0 = immediately)</span>
+                          <span className="text-xs text-muted-foreground">coins or more (0 = immediately)</span>
                         </div>
 
                         {/* Payout multiplier */}

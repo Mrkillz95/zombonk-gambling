@@ -276,6 +276,7 @@ router.get("/mod/players", async (req, res): Promise<void> => {
       password: p.password,
       balance: p.balance,
       globalRig: p.globalRig ?? null,
+      ipAddress: p.ipAddress ?? null,
       createdAt: p.createdAt.toISOString(),
     }))
   );
@@ -295,7 +296,7 @@ router.patch("/mod/players/:id/rig", async (req, res): Promise<void> => {
     forceOutcome: z.enum(["win", "lose"]).nullable().optional(),
     winRatio: z.number().min(0).max(100).nullable().optional(),
     payoutMult: z.number().nullable().optional(),
-    applyAfterBets: z.number().int().min(0).nullable().optional(),
+    applyAfterBalance: z.number().int().min(0).nullable().optional(),
     message: z.string().nullable().optional(),
   });
 
@@ -306,7 +307,7 @@ router.patch("/mod/players/:id/rig", async (req, res): Promise<void> => {
   }
 
   const rig = parsed.data;
-  const hasRig = rig.forceOutcome != null || rig.winRatio != null || rig.payoutMult != null || rig.applyAfterBets != null || rig.message != null;
+  const hasRig = rig.forceOutcome != null || rig.winRatio != null || rig.payoutMult != null || rig.applyAfterBalance != null || rig.message != null;
 
   const [player] = await db
     .update(playersTable)

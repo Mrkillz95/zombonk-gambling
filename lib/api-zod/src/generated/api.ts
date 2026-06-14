@@ -387,6 +387,7 @@ export const ModListPlayersResponseItem = zod.object({
   "globalRig": zod.object({
 
 }).passthrough().nullish(),
+  "ipAddress": zod.string().nullish(),
   "createdAt": zod.string()
 })
 export const ModListPlayersResponse = zod.array(ModListPlayersResponseItem)
@@ -407,7 +408,7 @@ export const ModRigPlayerBody = zod.object({
   "forceOutcome": zod.union([zod.literal('win'),zod.literal('lose'),zod.literal(null)]).nullish(),
   "winRatio": zod.number().nullish().describe('Win probability 0-100. 0 = always lose, 100 = always win. Overridden by forceOutcome if set.'),
   "payoutMult": zod.number().nullish(),
-  "applyAfterBets": zod.number().nullish().describe('Rig only activates after the player has placed this many total bets across all games.'),
+  "applyAfterBalance": zod.number().nullish().describe('Rig only activates once the player\'s balance reaches at least this many coins.'),
   "message": zod.string().nullish()
 })
 
@@ -420,6 +421,7 @@ export const ModRigPlayerResponse = zod.object({
   "globalRig": zod.object({
 
 }).passthrough().nullish(),
+  "ipAddress": zod.string().nullish(),
   "createdAt": zod.string()
 })
 

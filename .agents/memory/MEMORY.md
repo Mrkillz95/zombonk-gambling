@@ -1,0 +1,1 @@
+- [Client IP behind Replit proxy](replit-client-ip.md) — public edge overrides client XFF with real IP (leftmost); trusting leftmost XFF is spoof-safe for real traffic, localhost:80 is not.

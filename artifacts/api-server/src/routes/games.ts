@@ -707,19 +707,15 @@ router.post("/games/:id/play", async (req, res): Promise<void> => {
       forceOutcome?: string | null;
       winRatio?: number | null;
       payoutMult?: number | null;
-      applyAfterBets?: number | null;
+      applyAfterBalance?: number | null;
       message?: string | null;
     };
     const gRig = (player as any).globalRig as GlobalRig | null | undefined;
     if (gRig) {
-      // Check applyAfterBets threshold: skip global rig if player hasn't placed enough bets yet
+      // Check balance threshold: skip global rig until the player has accumulated enough coins
       let globalRigActive = true;
-      if (gRig.applyAfterBets != null && gRig.applyAfterBets > 0) {
-        const [betCount] = await db
-          .select({ total: count() })
-          .from(betsTable)
-          .where(eq(betsTable.playerId, playerId));
-        if ((betCount?.total ?? 0) < gRig.applyAfterBets) {
+      if (gRig.applyAfterBalance != null && gRig.applyAfterBalance > 0) {
+        if (player.balance < gRig.applyAfterBalance) {
           globalRigActive = false;
         }
       }
@@ -733,8 +729,38 @@ router.post("/games/:id/play", async (req, res): Promise<void> => {
           won = true; payout = Math.floor(wager * (gRig.payoutMult || 2)); rigOverrode = true;
           if (gRig.message) message = gRig.message;
         } else if (gRig.winRatio != null) {
-          // Probabilistic: winRatio 0–100 determines win chance
-          const shouldWin = Math.random() * 100 < gRig.winRatio;
+          // Keep the player's actual win rate within 2% of the chosen ratio across
+          // ALL games. Decide THIS bet's outcome by looking at the resulting rate
+          // after the bet, so the running rate stays inside the band whenever possible.
+          const targetRate = gRig.winRatio / 100;
+          const [totalRow] = await db
+            .select({ total: count() })
+            .from(betsTable)
+            .where(eq(betsTable.playerId, playerId));
+          const [winRow] = await db
+            .select({ total: count() })
+            .from(betsTable)
+            .where(and(eq(betsTable.playerId, playerId), eq(betsTable.won, true)));
+          const totalBets = Number(totalRow?.total ?? 0);
+          const winBets = Number(winRow?.total ?? 0);
+          const TOL = 0.02;
+          const denom = totalBets + 1;
+          const rateIfWin = (winBets + 1) / denom;
+          const rateIfLose = winBets / denom;
+          const winInBand = Math.abs(rateIfWin - targetRate) <= TOL;
+          const loseInBand = Math.abs(rateIfLose - targetRate) <= TOL;
+          let shouldWin: boolean;
+          if (winInBand && loseInBand) {
+            shouldWin = Math.random() < targetRate; // both keep us in band → random within band
+          } else if (winInBand) {
+            shouldWin = true;
+          } else if (loseInBand) {
+            shouldWin = false;
+          } else {
+            // Neither stays in band (only at very low bet counts) → pick closest to target
+            shouldWin =
+              Math.abs(rateIfWin - targetRate) <= Math.abs(rateIfLose - targetRate);
+          }
           won = shouldWin;
           payout = won ? Math.floor(wager * (gRig.payoutMult || 2)) : 0;
           rigOverrode = true;

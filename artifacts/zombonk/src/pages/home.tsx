@@ -219,9 +219,6 @@ export default function Home() {
           </div>
         )}
 
-        <div className="text-xs text-muted-foreground">
-          For entertainment purposes only. No real money involved.
-        </div>
       </div>
     </div>
   );

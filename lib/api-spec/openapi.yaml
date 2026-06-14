@@ -710,6 +710,8 @@ components:
           type: integer
         globalRig:
           type: ["object", "null"]
+        ipAddress:
+          type: ["string", "null"]
         createdAt:
           type: string
 
@@ -744,9 +746,9 @@ components:
           description: "Win probability 0-100. 0 = always lose, 100 = always win. Overridden by forceOutcome if set."
         payoutMult:
           type: ["number", "null"]
-        applyAfterBets:
+        applyAfterBalance:
           type: ["integer", "null"]
-          description: "Rig only activates after the player has placed this many total bets across all games."
+          description: "Rig only activates once the player's balance reaches at least this many coins."
         message:
           type: ["string", "null"]
 
