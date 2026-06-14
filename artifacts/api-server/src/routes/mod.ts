@@ -133,11 +133,21 @@ router.patch("/mod/games/:id", async (req, res): Promise<void> => {
   if (status !== undefined) updateData.status = status;
   if (config !== undefined) updateData.config = config;
 
-  const [game] = await db
-    .update(gamesTable)
-    .set(updateData)
-    .where(eq(gamesTable.id, params.data.id))
-    .returning();
+  // Drizzle throws "No values to set" on an empty update, which happens when the
+  // request only changes options. Only run the update when there's a field to set.
+  let game;
+  if (Object.keys(updateData).length > 0) {
+    [game] = await db
+      .update(gamesTable)
+      .set(updateData)
+      .where(eq(gamesTable.id, params.data.id))
+      .returning();
+  } else {
+    [game] = await db
+      .select()
+      .from(gamesTable)
+      .where(eq(gamesTable.id, params.data.id));
+  }
 
   if (!game) {
     res.status(404).json({ error: "Game not found" });

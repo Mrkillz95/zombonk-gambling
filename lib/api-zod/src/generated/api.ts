@@ -257,11 +257,11 @@ export const ModCreateGameBody = zod.object({
   "options": zod.array(zod.object({
   "label": zod.string(),
   "odds": zod.number(),
-  "emoji": zod.string().optional(),
-  "weight": zod.number().optional(),
-  "imageUrl": zod.string().optional(),
-  "displayOdds": zod.string().optional(),
-  "trueWinPct": zod.number().optional()
+  "emoji": zod.string().nullish(),
+  "weight": zod.number().nullish(),
+  "imageUrl": zod.string().nullish(),
+  "displayOdds": zod.string().nullish(),
+  "trueWinPct": zod.number().nullish()
 })).optional()
 })
 
@@ -286,11 +286,11 @@ export const ModUpdateGameBody = zod.object({
   "options": zod.array(zod.object({
   "label": zod.string(),
   "odds": zod.number(),
-  "emoji": zod.string().optional(),
-  "weight": zod.number().optional(),
-  "imageUrl": zod.string().optional(),
-  "displayOdds": zod.string().optional(),
-  "trueWinPct": zod.number().optional()
+  "emoji": zod.string().nullish(),
+  "weight": zod.number().nullish(),
+  "imageUrl": zod.string().nullish(),
+  "displayOdds": zod.string().nullish(),
+  "trueWinPct": zod.number().nullish()
 })).optional()
 })
 

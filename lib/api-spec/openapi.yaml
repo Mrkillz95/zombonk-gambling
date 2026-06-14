@@ -835,15 +835,15 @@ components:
         odds:
           type: number
         emoji:
-          type: string
+          type: ["string", "null"]
         weight:
-          type: integer
+          type: ["integer", "null"]
         imageUrl:
-          type: string
+          type: ["string", "null"]
         displayOdds:
-          type: string
+          type: ["string", "null"]
         trueWinPct:
-          type: integer
+          type: ["integer", "null"]
 
     GameUpdate:
       type: object

@@ -195,11 +195,16 @@ export type GameInputConfig = { [key: string]: unknown };
 export interface GameOptionInput {
   label: string;
   odds: number;
-  emoji?: string;
-  weight?: number;
-  imageUrl?: string;
-  displayOdds?: string;
-  trueWinPct?: number;
+  /** @nullable */
+  emoji?: string | null;
+  /** @nullable */
+  weight?: number | null;
+  /** @nullable */
+  imageUrl?: string | null;
+  /** @nullable */
+  displayOdds?: string | null;
+  /** @nullable */
+  trueWinPct?: number | null;
 }
 
 export interface GameInput {
