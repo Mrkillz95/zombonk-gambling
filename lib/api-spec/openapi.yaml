@@ -688,6 +688,12 @@ components:
           type: ["integer", "null"]
         isWinner:
           type: ["boolean", "null"]
+        imageUrl:
+          type: ["string", "null"]
+        displayOdds:
+          type: ["string", "null"]
+        trueWinPct:
+          type: ["integer", "null"]
 
     GameInput:
       type: object
@@ -716,6 +722,12 @@ components:
         emoji:
           type: string
         weight:
+          type: integer
+        imageUrl:
+          type: string
+        displayOdds:
+          type: string
+        trueWinPct:
           type: integer
 
     GameUpdate:

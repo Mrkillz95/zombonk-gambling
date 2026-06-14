@@ -77,8 +77,12 @@ function OptionGrid({ options, selected, onSelect, columns = 2 }: {
           onClick={() => onSelect(opt.id)}
           className={`h-14 rounded-lg border-2 flex flex-col items-center justify-center font-bold transition-all px-2 ${selected === opt.id ? "border-primary bg-primary/15 text-primary" : "border-border bg-background text-foreground hover:border-primary/50"}`}
         >
+          {opt.imageUrl && (
+            <img src={opt.imageUrl} alt="" className="h-5 w-5 object-cover rounded mb-0.5"
+              onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+          )}
           <span className="text-sm leading-tight text-center">{opt.label}</span>
-          <span className="text-xs text-muted-foreground font-normal mt-0.5">{opt.odds}x</span>
+          <span className="text-xs text-muted-foreground font-normal mt-0.5">{opt.displayOdds ?? `${opt.odds}x`}</span>
         </button>
       ))}
     </div>
@@ -179,14 +183,34 @@ export default function GamePage() {
 
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
         {/* Header */}
-        <div className="bg-card border border-border rounded-xl p-5">
-          <div className="flex items-start justify-between mb-1">
-            <h1 className="text-xl font-black text-foreground">{game.title}</h1>
-            <Badge variant="outline" className={isOpen ? "border-green-500/30 text-green-400" : "border-destructive/30 text-destructive"}>
-              {game.status.toUpperCase()}
-            </Badge>
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          {config?.bannerImage && (
+            <img src={config.bannerImage} alt="Game banner"
+              className="w-full h-32 object-cover"
+              onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+          )}
+          <div className="p-5">
+            <div className="flex items-start justify-between mb-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl font-black text-foreground">{game.title}</h1>
+                {config?.badgeText && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-primary/15 text-primary font-semibold border border-primary/25">
+                    {config.badgeText}
+                  </span>
+                )}
+              </div>
+              <Badge variant="outline" className={isOpen ? "border-green-500/30 text-green-400" : "border-destructive/30 text-destructive"}>
+                {game.status.toUpperCase()}
+              </Badge>
+            </div>
+            <p className="text-muted-foreground text-sm">{GAME_LABELS[type] ?? type}</p>
+            {config?.description && (
+              <p className="text-sm text-foreground/80 mt-2 leading-relaxed">{config.description}</p>
+            )}
+            {config?.displayOddsText && (
+              <p className="text-xs text-muted-foreground mt-1 font-mono">{config.displayOddsText}</p>
+            )}
           </div>
-          <p className="text-muted-foreground text-sm">{GAME_LABELS[type] ?? type}</p>
         </div>
 
         {isOpen && (

@@ -92,7 +92,10 @@ export const ListGamesResponseItem = zod.object({
   "odds": zod.number(),
   "emoji": zod.string().nullish(),
   "weight": zod.number().nullish(),
-  "isWinner": zod.boolean().nullish()
+  "isWinner": zod.boolean().nullish(),
+  "imageUrl": zod.string().nullish(),
+  "displayOdds": zod.string().nullish(),
+  "trueWinPct": zod.number().nullish()
 })).optional(),
   "resolvedOptionId": zod.number().nullish(),
   "createdAt": zod.string()
@@ -138,7 +141,10 @@ export const GetGameResponse = zod.object({
   "odds": zod.number(),
   "emoji": zod.string().nullish(),
   "weight": zod.number().nullish(),
-  "isWinner": zod.boolean().nullish()
+  "isWinner": zod.boolean().nullish(),
+  "imageUrl": zod.string().nullish(),
+  "displayOdds": zod.string().nullish(),
+  "trueWinPct": zod.number().nullish()
 })).optional(),
   "resolvedOptionId": zod.number().nullish(),
   "createdAt": zod.string()
@@ -203,7 +209,10 @@ export const ModListGamesResponseItem = zod.object({
   "odds": zod.number(),
   "emoji": zod.string().nullish(),
   "weight": zod.number().nullish(),
-  "isWinner": zod.boolean().nullish()
+  "isWinner": zod.boolean().nullish(),
+  "imageUrl": zod.string().nullish(),
+  "displayOdds": zod.string().nullish(),
+  "trueWinPct": zod.number().nullish()
 })).optional(),
   "resolvedOptionId": zod.number().nullish(),
   "createdAt": zod.string()
@@ -228,7 +237,10 @@ export const ModCreateGameBody = zod.object({
   "label": zod.string(),
   "odds": zod.number(),
   "emoji": zod.string().optional(),
-  "weight": zod.number().optional()
+  "weight": zod.number().optional(),
+  "imageUrl": zod.string().optional(),
+  "displayOdds": zod.string().optional(),
+  "trueWinPct": zod.number().optional()
 })).optional()
 })
 
@@ -254,7 +266,10 @@ export const ModUpdateGameBody = zod.object({
   "label": zod.string(),
   "odds": zod.number(),
   "emoji": zod.string().optional(),
-  "weight": zod.number().optional()
+  "weight": zod.number().optional(),
+  "imageUrl": zod.string().optional(),
+  "displayOdds": zod.string().optional(),
+  "trueWinPct": zod.number().optional()
 })).optional()
 })
 
@@ -273,7 +288,10 @@ export const ModUpdateGameResponse = zod.object({
   "odds": zod.number(),
   "emoji": zod.string().nullish(),
   "weight": zod.number().nullish(),
-  "isWinner": zod.boolean().nullish()
+  "isWinner": zod.boolean().nullish(),
+  "imageUrl": zod.string().nullish(),
+  "displayOdds": zod.string().nullish(),
+  "trueWinPct": zod.number().nullish()
 })).optional(),
   "resolvedOptionId": zod.number().nullish(),
   "createdAt": zod.string()
@@ -322,7 +340,10 @@ export const ModResolveGameResponse = zod.object({
   "odds": zod.number(),
   "emoji": zod.string().nullish(),
   "weight": zod.number().nullish(),
-  "isWinner": zod.boolean().nullish()
+  "isWinner": zod.boolean().nullish(),
+  "imageUrl": zod.string().nullish(),
+  "displayOdds": zod.string().nullish(),
+  "trueWinPct": zod.number().nullish()
 })).optional(),
   "resolvedOptionId": zod.number().nullish(),
   "createdAt": zod.string()

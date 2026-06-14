@@ -17,4 +17,10 @@ export interface GameOption {
   weight?: number | null;
   /** @nullable */
   isWinner?: boolean | null;
+  /** @nullable */
+  imageUrl?: string | null;
+  /** @nullable */
+  displayOdds?: string | null;
+  /** @nullable */
+  trueWinPct?: number | null;
 }

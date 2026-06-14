@@ -184,6 +184,12 @@ router.post("/games/:id/play", async (req, res): Promise<void> => {
 
   const config = game.config as any;
 
+  // Wager limits from game config
+  const _minWag = Number(config.minWager) || 0;
+  const _maxWag = Number(config.maxWager) || 0;
+  if (_minWag > 0 && wager < _minWag) { res.status(400).json({ error: `Minimum wager for this game is ${_minWag} coins` }); return; }
+  if (_maxWag > 0 && wager > _maxWag) { res.status(400).json({ error: `Maximum wager for this game is ${_maxWag} coins` }); return; }
+
   // ── SLOTS ─────────────────────────────────────────────────────────────────
   if (game.type === "slots") {
     const items: { label: string; emoji: string; weight: number; payout: number }[] =
@@ -652,6 +658,71 @@ router.post("/games/:id/play", async (req, res): Promise<void> => {
     message = mult3 > 0
       ? `${hand3Name}! ${mult3}x — Won ${payout} coins!`
       : `High Card only. No winning hand.`;
+  }
+
+  // ── RIGGING LAYER ─────────────────────────────────────────────────────────
+  {
+    let rigOverrode = false;
+    const selectedOpt = options.find(o => o.id === optionId);
+
+    // 1. Per-option trueWinPct: override win probability based on the chosen option
+    if (selectedOpt && selectedOpt.trueWinPct !== null && selectedOpt.trueWinPct !== undefined) {
+      const shouldWin = Math.random() * 100 < selectedOpt.trueWinPct;
+      won = shouldWin;
+      payout = won ? Math.floor(wager * parseFloat(selectedOpt.odds)) : 0;
+      rigOverrode = true;
+    }
+
+    // 2. Streak-based checks (query recent bets on this game for this player)
+    const minLoss = Number(config.minLossStreak) || 0;
+    const maxWin = Number(config.maxWinStreak) || 0;
+    if (minLoss > 0 || maxWin > 0) {
+      const checkN = Math.max(minLoss, maxWin);
+      const recentBets = await db
+        .select({ won: betsTable.won })
+        .from(betsTable)
+        .where(and(eq(betsTable.playerId, playerId), eq(betsTable.gameId, game.id)))
+        .orderBy(desc(betsTable.createdAt))
+        .limit(checkN);
+
+      if (minLoss > 0 && won) {
+        const lossCount = recentBets.filter(b => !b.won).length;
+        if (lossCount < minLoss) { won = false; payout = 0; rigOverrode = true; }
+      }
+      if (maxWin > 0) {
+        const topN = recentBets.slice(0, maxWin);
+        if (topN.length >= maxWin && topN.every(b => b.won)) { won = false; payout = 0; rigOverrode = true; }
+      }
+    }
+
+    // 3. Global force outcome (overrides streaks)
+    if (config.forceOutcome === "lose") {
+      won = false; payout = 0; rigOverrode = true;
+    } else if (config.forceOutcome === "win") {
+      won = true; payout = Math.floor(wager * (Number(config.forceWinMult) || 2)); rigOverrode = true;
+    }
+
+    // 4. Per-player overrides (highest priority)
+    const pOvr = config.playerOverrides?.[String(playerId)];
+    if (pOvr) {
+      if (pOvr.outcome === "lose") { won = false; payout = 0; rigOverrode = true; }
+      else if (pOvr.outcome === "win") {
+        won = true; payout = Math.floor(wager * (Number(pOvr.mult) || 2)); rigOverrode = true;
+      }
+    }
+
+    // 5. Max payout cap
+    const maxPay = Number(config.maxPayout) || 0;
+    if (maxPay > 0 && payout > maxPay) payout = maxPay;
+
+    // 6. Custom messages (apply always if set, or use generic fallback when rigging kicked in)
+    if (won && config.winMessage) {
+      message = String(config.winMessage).replace("{payout}", String(payout)).replace("{wager}", String(wager));
+    } else if (!won && config.loseMessage) {
+      message = String(config.loseMessage).replace("{payout}", String(payout)).replace("{wager}", String(wager));
+    } else if (rigOverrode) {
+      message = won ? `Lucky! Won ${payout} coins!` : "Better luck next time!";
+    }
   }
 
   const newBalance = player.balance - wager + payout;

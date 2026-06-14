@@ -24,7 +24,10 @@ type GameType =
   | "plinko" | "blackjack" | "crash" | "keno" | "scratch_card"
   | "video_poker" | "mines" | "war" | "baccarat" | "three_card_poker";
 
-interface OptionInput { label: string; odds: number; emoji: string; weight: number; }
+interface OptionInput {
+  label: string; odds: number; emoji: string; weight: number;
+  imageUrl?: string; displayOdds?: string; trueWinPct?: number | null;
+}
 interface SlotItem { label: string; emoji: string; weight: number; payout: number; }
 interface WheelSection { label: string; weight: number; payout: number; }
 
@@ -54,6 +57,24 @@ interface GameFormState {
   kenoMaxSpots: number;
   minesMaxMines: number;
   warTieMult: number;
+  // Presentation
+  description: string;
+  bannerImage: string;
+  badgeText: string;
+  displayOddsText: string;
+  // Wager limits
+  minWager: number;
+  maxWager: number;
+  maxPayout: number;
+  // Rigging
+  forceOutcome: "" | "win" | "lose";
+  forceWinMult: number;
+  minLossStreak: number;
+  maxWinStreak: number;
+  winMessage: string;
+  loseMessage: string;
+  // Player overrides
+  playerOverrides: { playerId: string; outcome: "win" | "lose"; mult: number }[];
 }
 
 const DEFAULT_FORM: GameFormState = {
@@ -80,6 +101,12 @@ const DEFAULT_FORM: GameFormState = {
   jackpotTickets: 100, jackpotAmount: 10000,
   plinkRows: 8, plinkMults: "0.3, 0.5, 1, 2, 5, 2, 1, 0.5, 0.3",
   crashMaxTarget: 50, kenoMaxSpots: 10, minesMaxMines: 24, warTieMult: 3,
+  description: "", bannerImage: "", badgeText: "", displayOddsText: "",
+  minWager: 0, maxWager: 0, maxPayout: 0,
+  forceOutcome: "" as const, forceWinMult: 2,
+  minLossStreak: 0, maxWinStreak: 0,
+  winMessage: "", loseMessage: "",
+  playerOverrides: [],
 };
 
 const TYPE_DEFAULT_OPTIONS: Partial<Record<GameType, OptionInput[]>> = {
@@ -214,6 +241,28 @@ function buildPayload(form: GameFormState) {
     options = form.options;
   }
 
+  // Merge rigging + presentation into config
+  const rigging: any = {};
+  if (form.description) rigging.description = form.description;
+  if (form.bannerImage) rigging.bannerImage = form.bannerImage;
+  if (form.badgeText) rigging.badgeText = form.badgeText;
+  if (form.displayOddsText) rigging.displayOddsText = form.displayOddsText;
+  if (form.minWager > 0) rigging.minWager = form.minWager;
+  if (form.maxWager > 0) rigging.maxWager = form.maxWager;
+  if (form.maxPayout > 0) rigging.maxPayout = form.maxPayout;
+  if (form.forceOutcome) rigging.forceOutcome = form.forceOutcome;
+  if (form.forceWinMult !== 2) rigging.forceWinMult = form.forceWinMult;
+  if (form.minLossStreak > 0) rigging.minLossStreak = form.minLossStreak;
+  if (form.maxWinStreak > 0) rigging.maxWinStreak = form.maxWinStreak;
+  if (form.winMessage) rigging.winMessage = form.winMessage;
+  if (form.loseMessage) rigging.loseMessage = form.loseMessage;
+  if (form.playerOverrides.length > 0) {
+    rigging.playerOverrides = Object.fromEntries(
+      form.playerOverrides.filter(p => p.playerId.trim()).map(p => [p.playerId, { outcome: p.outcome, mult: p.mult }])
+    );
+  }
+  config = { ...config, ...rigging };
+
   return { title: form.title, type: form.type, config, options };
 }
 
@@ -225,28 +274,58 @@ function OptionRow({
   onChange: (i: number, field: keyof OptionInput, val: any) => void;
   onRemove: (i: number) => void;
 }) {
+  const [showAdv, setShowAdv] = useState(false);
   return (
-    <div className="flex gap-1.5 items-center" data-testid={`option-row-${index}`}>
-      <Input data-testid={`input-option-label-${index}`} className="flex-1 h-9 text-sm" placeholder="Label"
-        value={opt.label} onChange={e => onChange(index, "label", e.target.value)} />
-      {showEmoji && (
-        <Input data-testid={`input-option-emoji-${index}`} className="w-14 h-9 text-sm text-center" placeholder="Icon"
-          value={opt.emoji} onChange={e => onChange(index, "emoji", e.target.value)} />
-      )}
-      <div className="flex items-center gap-1 shrink-0">
-        <span className="text-xs text-muted-foreground">Odds</span>
-        <Input data-testid={`input-option-odds-${index}`} className="w-16 h-9 text-sm font-mono" type="number" step="0.1" min="1"
-          value={opt.odds} onChange={e => onChange(index, "odds", parseFloat(e.target.value) || 1)} />
-      </div>
-      {showWeight && (
+    <div className="space-y-1" data-testid={`option-row-${index}`}>
+      <div className="flex gap-1.5 items-center">
+        <Input data-testid={`input-option-label-${index}`} className="flex-1 h-9 text-sm" placeholder="Label"
+          value={opt.label} onChange={e => onChange(index, "label", e.target.value)} />
+        {showEmoji && (
+          <Input data-testid={`input-option-emoji-${index}`} className="w-14 h-9 text-sm text-center" placeholder="Icon"
+            value={opt.emoji} onChange={e => onChange(index, "emoji", e.target.value)} />
+        )}
         <div className="flex items-center gap-1 shrink-0">
-          <span className="text-xs text-muted-foreground">Wt</span>
-          <Input data-testid={`input-option-weight-${index}`} className="w-14 h-9 text-sm font-mono" type="number" min="1"
-            value={opt.weight} onChange={e => onChange(index, "weight", parseInt(e.target.value) || 1)} />
+          <span className="text-xs text-muted-foreground">Odds</span>
+          <Input data-testid={`input-option-odds-${index}`} className="w-16 h-9 text-sm font-mono" type="number" step="0.1" min="1"
+            value={opt.odds} onChange={e => onChange(index, "odds", parseFloat(e.target.value) || 1)} />
+        </div>
+        {showWeight && (
+          <div className="flex items-center gap-1 shrink-0">
+            <span className="text-xs text-muted-foreground">Wt</span>
+            <Input data-testid={`input-option-weight-${index}`} className="w-14 h-9 text-sm font-mono" type="number" min="1"
+              value={opt.weight} onChange={e => onChange(index, "weight", parseInt(e.target.value) || 1)} />
+          </div>
+        )}
+        <Button size="sm" variant="ghost"
+          className={`h-9 w-8 p-0 shrink-0 text-muted-foreground hover:text-foreground ${showAdv ? "bg-primary/10 text-primary" : ""}`}
+          onClick={() => setShowAdv(p => !p)} title="Advanced option settings" data-testid={`button-option-adv-${index}`}>⋯</Button>
+        <Button size="sm" variant="ghost" className="h-9 w-8 p-0 text-destructive hover:text-destructive shrink-0"
+          onClick={() => onRemove(index)} data-testid={`button-remove-option-${index}`}>✕</Button>
+      </div>
+      {showAdv && (
+        <div className="flex flex-wrap gap-2 pl-2 pb-1.5 pt-0.5 border-l-2 border-primary/30 ml-1">
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">Display Odds</span>
+            <Input className="w-24 h-8 text-xs" placeholder="e.g. 50/50"
+              value={opt.displayOdds ?? ""} onChange={e => onChange(index, "displayOdds", e.target.value)} />
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">True Win %</span>
+            <Input className="w-16 h-8 text-xs font-mono" type="number" min="0" max="100" placeholder="auto"
+              value={opt.trueWinPct ?? ""}
+              onChange={e => onChange(index, "trueWinPct", e.target.value === "" ? null : parseInt(e.target.value))} />
+          </div>
+          <div className="flex items-center gap-1 flex-1 min-w-[180px]">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">Image URL</span>
+            <Input className="flex-1 h-8 text-xs" placeholder="https://..."
+              value={opt.imageUrl ?? ""} onChange={e => onChange(index, "imageUrl", e.target.value)} />
+          </div>
+          {opt.imageUrl && (
+            <img src={opt.imageUrl} alt="" className="h-8 w-8 rounded object-cover border border-border shrink-0"
+              onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+          )}
         </div>
       )}
-      <Button size="sm" variant="ghost" className="h-9 w-8 p-0 text-destructive hover:text-destructive shrink-0"
-        onClick={() => onRemove(index)} data-testid={`button-remove-option-${index}`}>✕</Button>
     </div>
   );
 }
@@ -261,11 +340,13 @@ function GameForm({
   isPending: boolean;
   submitLabel: string;
 }) {
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
   const updateOpt = (i: number, field: keyof OptionInput, val: any) => {
     setForm(p => { const o = [...p.options]; o[i] = { ...o[i], [field]: val }; return { ...p, options: o }; });
   };
   const removeOpt = (i: number) => setForm(p => ({ ...p, options: p.options.filter((_, j) => j !== i) }));
-  const addOpt = () => setForm(p => ({ ...p, options: [...p.options, { label: "", odds: 2, emoji: "", weight: 1 }] }));
+  const addOpt = () => setForm(p => ({ ...p, options: [...p.options, { label: "", odds: 2, emoji: "", weight: 1, imageUrl: "", displayOdds: "", trueWinPct: null }] }));
 
   const updateSlot = (i: number, field: keyof SlotItem, val: any) => {
     setForm(p => { const s = [...p.slotItems]; s[i] = { ...s[i], [field]: val }; return { ...p, slotItems: s }; });
@@ -528,6 +609,182 @@ function GameForm({
         </div>
       )}
 
+      {/* ── Advanced Settings & Rigging ── */}
+      <div className="border border-border rounded-lg overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setShowAdvanced(p => !p)}
+          className="w-full flex items-center justify-between px-4 py-2.5 bg-card/60 hover:bg-card transition-colors text-sm font-medium text-foreground"
+        >
+          <span>⚡ Advanced Settings &amp; Rigging</span>
+          <span className="text-muted-foreground text-xs">{showAdvanced ? "▲ collapse" : "▼ expand"}</span>
+        </button>
+        {showAdvanced && (
+          <div className="p-4 space-y-5 border-t border-border bg-background/50">
+
+            {/* Presentation */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-widest text-primary/80">Presentation</p>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground font-medium uppercase">Description (shown to players)</label>
+                <textarea value={form.description}
+                  onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
+                  placeholder="Describe this game to players..."
+                  className="w-full min-h-[70px] rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-ring" />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground font-medium uppercase">Banner Image URL</label>
+                  <Input value={form.bannerImage} onChange={e => setForm(p => ({ ...p, bannerImage: e.target.value }))}
+                    placeholder="https://..." className="h-9 text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground font-medium uppercase">Badge Text</label>
+                  <Input value={form.badgeText} onChange={e => setForm(p => ({ ...p, badgeText: e.target.value }))}
+                    placeholder="🔥 HOT" className="h-9 text-sm" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground font-medium uppercase">Display Odds / RTP Text (shown to players)</label>
+                <Input value={form.displayOddsText} onChange={e => setForm(p => ({ ...p, displayOddsText: e.target.value }))}
+                  placeholder="e.g. 50/50 · 95% RTP · 2x payout" className="h-9 text-sm" />
+                <p className="text-xs text-muted-foreground">This text is displayed to players. It can differ from real odds.</p>
+              </div>
+              {form.bannerImage && (
+                <img src={form.bannerImage} alt="Banner preview"
+                  className="w-full max-h-32 object-cover rounded-md border border-border"
+                  onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+              )}
+            </div>
+
+            {/* Wager Limits */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-widest text-primary/80">Wager Limits</p>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground font-medium uppercase">Min Wager</label>
+                  <Input type="number" min="0" value={form.minWager || ""}
+                    placeholder="No limit" onChange={e => setForm(p => ({ ...p, minWager: parseInt(e.target.value) || 0 }))} className="h-9 text-sm font-mono" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground font-medium uppercase">Max Wager</label>
+                  <Input type="number" min="0" value={form.maxWager || ""}
+                    placeholder="No limit" onChange={e => setForm(p => ({ ...p, maxWager: parseInt(e.target.value) || 0 }))} className="h-9 text-sm font-mono" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground font-medium uppercase">Max Payout Cap</label>
+                  <Input type="number" min="0" value={form.maxPayout || ""}
+                    placeholder="No cap" onChange={e => setForm(p => ({ ...p, maxPayout: parseInt(e.target.value) || 0 }))} className="h-9 text-sm font-mono" />
+                </div>
+              </div>
+            </div>
+
+            {/* Outcome Rigging */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-widest text-destructive/80">🎰 Outcome Rigging</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground font-medium uppercase">Force Outcome (global override)</label>
+                  <select value={form.forceOutcome}
+                    onChange={e => setForm(p => ({ ...p, forceOutcome: e.target.value as "" | "win" | "lose" }))}
+                    className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground">
+                    <option value="">Normal (random)</option>
+                    <option value="win">Always Win</option>
+                    <option value="lose">Always Lose</option>
+                  </select>
+                </div>
+                {form.forceOutcome === "win" && (
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground font-medium uppercase">Forced Win Multiplier (x)</label>
+                    <Input type="number" min="1" step="0.5" value={form.forceWinMult}
+                      onChange={e => setForm(p => ({ ...p, forceWinMult: parseFloat(e.target.value) || 2 }))} className="h-9 text-sm font-mono" />
+                  </div>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground font-medium uppercase">Min Losses Before Win</label>
+                  <Input type="number" min="0" value={form.minLossStreak || ""} placeholder="Disabled"
+                    onChange={e => setForm(p => ({ ...p, minLossStreak: parseInt(e.target.value) || 0 }))} className="h-9 text-sm font-mono" />
+                  <p className="text-xs text-muted-foreground">Player must lose N times on this game first</p>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground font-medium uppercase">Max Wins in a Row</label>
+                  <Input type="number" min="0" value={form.maxWinStreak || ""} placeholder="Disabled"
+                    onChange={e => setForm(p => ({ ...p, maxWinStreak: parseInt(e.target.value) || 0 }))} className="h-9 text-sm font-mono" />
+                  <p className="text-xs text-muted-foreground">Force a loss after N consecutive wins</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground font-medium uppercase">Custom Win Message</label>
+                  <Input value={form.winMessage} onChange={e => setForm(p => ({ ...p, winMessage: e.target.value }))}
+                    placeholder="Lucky! Won {payout} coins!" className="h-9 text-sm" />
+                  <p className="text-xs text-muted-foreground">{"Use {payout} and {wager}"}</p>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground font-medium uppercase">Custom Lose Message</label>
+                  <Input value={form.loseMessage} onChange={e => setForm(p => ({ ...p, loseMessage: e.target.value }))}
+                    placeholder="Better luck next time! Lost {wager}." className="h-9 text-sm" />
+                  <p className="text-xs text-muted-foreground">{"Use {wager}"}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Per-Player Overrides */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-widest text-primary/80">👤 Player-Specific Overrides</p>
+                <Button size="sm" variant="outline" className="h-7 text-xs"
+                  onClick={() => setForm(p => ({ ...p, playerOverrides: [...p.playerOverrides, { playerId: "", outcome: "win", mult: 2 }] }))}>
+                  + Add
+                </Button>
+              </div>
+              {form.playerOverrides.length === 0 && (
+                <p className="text-xs text-muted-foreground italic">No per-player overrides. Add one to rig outcomes for specific players.</p>
+              )}
+              {form.playerOverrides.map((ov, i) => (
+                <div key={i} className="flex flex-wrap gap-1.5 items-center">
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">Player ID</span>
+                    <Input className="w-20 h-8 text-xs font-mono" type="number" min="1" value={ov.playerId}
+                      onChange={e => {
+                        const overrides = [...form.playerOverrides];
+                        overrides[i] = { ...ov, playerId: e.target.value };
+                        setForm(p => ({ ...p, playerOverrides: overrides }));
+                      }} />
+                  </div>
+                  <select value={ov.outcome}
+                    onChange={e => {
+                      const overrides = [...form.playerOverrides];
+                      overrides[i] = { ...ov, outcome: e.target.value as "win" | "lose" };
+                      setForm(p => ({ ...p, playerOverrides: overrides }));
+                    }}
+                    className="h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground">
+                    <option value="win">Always Win</option>
+                    <option value="lose">Always Lose</option>
+                  </select>
+                  {ov.outcome === "win" && (
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-muted-foreground">×</span>
+                      <Input className="w-14 h-8 text-xs font-mono" type="number" min="1" step="0.5" value={ov.mult}
+                        onChange={e => {
+                          const overrides = [...form.playerOverrides];
+                          overrides[i] = { ...ov, mult: parseFloat(e.target.value) || 2 };
+                          setForm(p => ({ ...p, playerOverrides: overrides }));
+                        }} />
+                    </div>
+                  )}
+                  <Button size="sm" variant="ghost" className="h-8 w-7 p-0 text-destructive shrink-0"
+                    onClick={() => setForm(p => ({ ...p, playerOverrides: p.playerOverrides.filter((_, j) => j !== i) }))}>✕</Button>
+                </div>
+              ))}
+            </div>
+
+          </div>
+        )}
+      </div>
+
       <Button className="w-full h-11 font-semibold" onClick={onSubmit}
         disabled={!form.title.trim() || isPending} data-testid="button-create-game">
         {isPending ? "Saving..." : submitLabel}
@@ -544,6 +801,9 @@ function gameToForm(game: any): GameFormState {
     odds: o.odds ?? 2,
     emoji: o.emoji ?? "",
     weight: o.weight ?? 1,
+    imageUrl: o.imageUrl ?? "",
+    displayOdds: o.displayOdds ?? "",
+    trueWinPct: o.trueWinPct ?? null,
   }));
 
   const base: GameFormState = {
@@ -551,6 +811,25 @@ function gameToForm(game: any): GameFormState {
     title: game.title ?? "",
     type: game.type as GameType,
     options: opts.length ? opts : (TYPE_DEFAULT_OPTIONS[game.type as GameType] ?? DEFAULT_FORM.options),
+    // Presentation
+    description: c.description ?? "",
+    bannerImage: c.bannerImage ?? "",
+    badgeText: c.badgeText ?? "",
+    displayOddsText: c.displayOddsText ?? "",
+    // Wager limits
+    minWager: c.minWager ?? 0,
+    maxWager: c.maxWager ?? 0,
+    maxPayout: c.maxPayout ?? 0,
+    // Rigging
+    forceOutcome: c.forceOutcome ?? "",
+    forceWinMult: c.forceWinMult ?? 2,
+    minLossStreak: c.minLossStreak ?? 0,
+    maxWinStreak: c.maxWinStreak ?? 0,
+    winMessage: c.winMessage ?? "",
+    loseMessage: c.loseMessage ?? "",
+    playerOverrides: c.playerOverrides
+      ? Object.entries(c.playerOverrides).map(([pid, o]: any) => ({ playerId: pid, outcome: o.outcome, mult: o.mult ?? 2 }))
+      : [],
   };
 
   if (game.type === "slots") {

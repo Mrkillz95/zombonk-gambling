@@ -94,6 +94,9 @@ router.post("/mod/games", async (req, res): Promise<void> => {
         odds: String(o.odds),
         emoji: o.emoji ?? null,
         weight: o.weight ?? 1,
+        imageUrl: o.imageUrl ?? null,
+        displayOdds: o.displayOdds ?? null,
+        trueWinPct: o.trueWinPct ?? null,
       }))
     );
   }
@@ -153,6 +156,9 @@ router.patch("/mod/games/:id", async (req, res): Promise<void> => {
           odds: String(o.odds),
           emoji: o.emoji ?? null,
           weight: o.weight ?? 1,
+          imageUrl: o.imageUrl ?? null,
+          displayOdds: o.displayOdds ?? null,
+          trueWinPct: o.trueWinPct ?? null,
         }))
       );
     }

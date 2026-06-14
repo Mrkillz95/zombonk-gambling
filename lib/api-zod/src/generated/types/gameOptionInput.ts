@@ -11,4 +11,7 @@ export interface GameOptionInput {
   odds: number;
   emoji?: string;
   weight?: number;
+  imageUrl?: string;
+  displayOdds?: string;
+  trueWinPct?: number;
 }

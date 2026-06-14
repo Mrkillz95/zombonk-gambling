@@ -76,6 +76,12 @@ export interface GameOption {
   weight?: number | null;
   /** @nullable */
   isWinner?: boolean | null;
+  /** @nullable */
+  imageUrl?: string | null;
+  /** @nullable */
+  displayOdds?: string | null;
+  /** @nullable */
+  trueWinPct?: number | null;
 }
 
 export interface Game {
@@ -129,6 +135,9 @@ export interface GameOptionInput {
   odds: number;
   emoji?: string;
   weight?: number;
+  imageUrl?: string;
+  displayOdds?: string;
+  trueWinPct?: number;
 }
 
 export interface GameInput {

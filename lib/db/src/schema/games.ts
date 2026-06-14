@@ -20,6 +20,9 @@ export const gameOptionsTable = pgTable("game_options", {
   emoji: text("emoji"),
   weight: integer("weight").notNull().default(1),
   isWinner: boolean("is_winner"),
+  imageUrl: text("image_url"),
+  displayOdds: text("display_odds"), // text shown to players (can differ from real odds)
+  trueWinPct: integer("true_win_pct"), // 0–100: actual win % when player picks this option; null = use weight
 });
 
 export const betsTable = pgTable("bets", {
