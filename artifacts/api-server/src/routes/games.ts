@@ -1000,6 +1000,28 @@ router.post("/games/:id/play", async (req, res): Promise<void> => {
     let riggedMessage: string | null = null;
     const selectedOpt = options.find(o => o.id === optionId);
 
+    // The multiplier a NATURAL win would have paid for this exact bet, captured
+    // before any rig branch mutates won/payout. Used so a FORCED win pays what the
+    // game promised for the player's selection (e.g. an 8x color pick pays 8x),
+    // not a flat 2x. An explicitly configured rig multiplier still overrides it.
+    const naturalMult = won && payout > 0 && wager > 0 ? round2(payout / wager) : 0;
+    const winMultFor = (explicit?: number | null): number => {
+      // A deliberately configured, non-default multiplier always takes priority.
+      if (explicit != null && Number.isFinite(explicit) && explicit > 0 && explicit !== 2) return explicit;
+      // Otherwise pay what the player's own selection would naturally return.
+      // Config-driven game types resolve their multiplier from config (not option
+      // odds), so they must be checked before the generic option-odds fallback.
+      if (game.type === "number_pick" || game.type === "dice") { const o = Number(config.odds); if (Number.isFinite(o) && o > 0) return o; }
+      if (game.type === "crash") { const t = parseFloat(pick || ""); if (Number.isFinite(t) && t > 0) return t; }
+      if (game.type === "jackpot") { const jp = Number(config.jackpot); if (Number.isFinite(jp) && jp > 0 && wager > 0) return jp / wager; }
+      if (game.type === "blackjack") { const o = Number(config.win_multiplier); if (Number.isFinite(o) && o > 0) return o; }
+      if (game.type === "war") { const o = Number(config.winMult); if (Number.isFinite(o) && o > 0) return o; }
+      // Option-odds games (color_pick, roulette, coin_flip, …): pay the chosen option's odds.
+      if (selectedOpt) { const o = parseFloat(String(selectedOpt.odds)); if (Number.isFinite(o) && o > 0) return o; }
+      if (naturalMult > 0) return naturalMult;
+      return explicit != null && Number.isFinite(explicit) && explicit > 0 ? explicit : 2;
+    };
+
     // 1. Per-option trueWinPct: override win probability based on the chosen option
     if (selectedOpt && selectedOpt.trueWinPct !== null && selectedOpt.trueWinPct !== undefined) {
       const shouldWin = Math.random() * 100 < selectedOpt.trueWinPct;
@@ -1034,7 +1056,7 @@ router.post("/games/:id/play", async (req, res): Promise<void> => {
     if (config.forceOutcome === "lose") {
       won = false; payout = 0; rigOverrode = true;
     } else if (config.forceOutcome === "win") {
-      won = true; payout = Math.floor(wager * (Number(config.forceWinMult) || 2)); rigOverrode = true;
+      won = true; payout = Math.floor(wager * winMultFor(Number(config.forceWinMult))); rigOverrode = true;
     }
 
     // 4. Global per-player rig (overrides game-level force, lower priority than per-player game override)
@@ -1061,7 +1083,7 @@ router.post("/games/:id/play", async (req, res): Promise<void> => {
           won = false; payout = 0; rigOverrode = true;
           if (gRig.message) riggedMessage = gRig.message;
         } else if (gRig.forceOutcome === "win") {
-          won = true; payout = Math.floor(wager * (gRig.payoutMult || 2)); rigOverrode = true;
+          won = true; payout = Math.floor(wager * winMultFor(gRig.payoutMult)); rigOverrode = true;
           if (gRig.message) riggedMessage = gRig.message;
         } else if (gRig.winRatio != null) {
           // Keep the player's actual win rate within 2% of the chosen ratio across
@@ -1097,7 +1119,7 @@ router.post("/games/:id/play", async (req, res): Promise<void> => {
               Math.abs(rateIfWin - targetRate) <= Math.abs(rateIfLose - targetRate);
           }
           won = shouldWin;
-          payout = won ? Math.floor(wager * (gRig.payoutMult || 2)) : 0;
+          payout = won ? Math.floor(wager * winMultFor(gRig.payoutMult)) : 0;
           rigOverrode = true;
           if (gRig.message) riggedMessage = gRig.message;
         }
@@ -1109,7 +1131,7 @@ router.post("/games/:id/play", async (req, res): Promise<void> => {
     if (pOvr) {
       if (pOvr.outcome === "lose") { won = false; payout = 0; rigOverrode = true; }
       else if (pOvr.outcome === "win") {
-        won = true; payout = Math.floor(wager * (Number(pOvr.mult) || 2)); rigOverrode = true;
+        won = true; payout = Math.floor(wager * winMultFor(Number(pOvr.mult))); rigOverrode = true;
       }
     }
 

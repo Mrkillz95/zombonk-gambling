@@ -2,3 +2,4 @@
 - [Rig visual consistency](rig-visual-consistency.md) — server must regenerate game visuals to match rigged won; slots/scratch_card/crash/plinko recompute win client-side.
 - [Mod game-edit contract](mod-game-edit-contract.md) — request schemas must accept null where responses emit null; guard empty Drizzle updates.
 - [Partial returns](partial-returns.md) — payout is independent of won; UI must show won=false & payout>0 as a partial return, not a loss.
+- [Rigged win payout multiplier](rig-win-payout-multiplier.md) — forced wins must pay the player's natural selection odds, not a flat 2x; explicit non-default rig mult overrides.
