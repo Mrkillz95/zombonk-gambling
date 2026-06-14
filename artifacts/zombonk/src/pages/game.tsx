@@ -159,6 +159,7 @@ function PlinkoBoard({ multipliers, path, slot, isDropping, won, onComplete }: {
             <div key={i}
               className={`absolute flex items-center justify-center text-xs font-bold rounded border transition-all ${
                 isLanded && won ? "bg-primary border-primary text-primary-foreground" :
+                isLanded && m > 0 ? "bg-amber-400/20 border-amber-400 text-amber-400" :
                 isLanded ? "bg-destructive/20 border-destructive text-destructive" :
                 m > 1 ? "bg-primary/10 border-primary/30 text-primary" :
                 "bg-background border-border text-muted-foreground"
@@ -404,6 +405,10 @@ export default function GamePage() {
   const numMin = type === "dice" ? (config?.dice || 1) : type === "jackpot" ? 1 : (config?.min || 1);
   const numMax = type === "dice" ? ((config?.sides || 6) * (config?.dice || 1)) : type === "jackpot" ? (config?.tickets || 100) : (config?.max || 10);
 
+  // A partial return: the bet didn't "win", but some coins came back (e.g. plinko
+  // sub-1x slots, blackjack push). Shown distinctly so it doesn't read as a total loss.
+  const isPartialReturn = !!result && !result.won && result.payout > 0;
+
   return (
     <div className="min-h-screen bg-background">
       {/* ── Screen flash on result ── */}
@@ -411,7 +416,7 @@ export default function GamePage() {
         {result && (
           <motion.div
             key={`flash-${result.betId ?? result.payout}`}
-            className={`fixed inset-0 pointer-events-none z-50 ${result.won ? "bg-primary" : "bg-destructive"}`}
+            className={`fixed inset-0 pointer-events-none z-50 ${result.won ? "bg-primary" : isPartialReturn ? "bg-amber-400" : "bg-destructive"}`}
             initial={{ opacity: result.won ? 0.22 : 0.18 }}
             animate={{ opacity: 0 }}
             transition={{ duration: 0.45, ease: "easeOut" }}
@@ -1006,14 +1011,14 @@ export default function GamePage() {
               key={result.betId ?? result.payout}
               data-testid="text-result"
               initial={{ scale: 0.75, opacity: 0, y: 24 }}
-              animate={result.won
+              animate={(result.won || isPartialReturn)
                 ? { scale: 1, opacity: 1, y: 0 }
                 : { scale: [0.75, 1.02, 1], opacity: 1, y: 0, x: [0, -8, 8, -6, 6, -3, 3, 0] }
               }
               exit={{ scale: 0.85, opacity: 0, y: -10 }}
               transition={{ type: "spring", stiffness: 380, damping: 22 }}
               className={`relative rounded-xl p-5 text-center border-2 overflow-hidden ${
-                result.won ? "bg-primary/10 border-primary/50" : "bg-destructive/10 border-destructive/50"
+                result.won ? "bg-primary/10 border-primary/50" : isPartialReturn ? "bg-amber-400/10 border-amber-400/50" : "bg-destructive/10 border-destructive/50"
               }`}
             >
               {result.won && <WinParticles />}
@@ -1021,17 +1026,17 @@ export default function GamePage() {
                 initial={{ scale: 0.4, opacity: 0 }}
                 animate={{ scale: [0.4, 1.35, 0.92, 1.08, 1], opacity: 1 }}
                 transition={{ duration: 0.5, times: [0, 0.45, 0.65, 0.8, 1] }}
-                className={`text-4xl font-black mb-2 ${result.won ? "text-primary" : "text-destructive"}`}
+                className={`text-4xl font-black mb-2 ${result.won ? "text-primary" : isPartialReturn ? "text-amber-400" : "text-destructive"}`}
               >
-                {result.won ? "🎉 WIN!" : (type === "match_bet" || type === "trivia") ? "✅ PLACED" : "💸 LOSS"}
+                {result.won ? "🎉 WIN!" : isPartialReturn ? "↩️ PARTIAL RETURN" : (type === "match_bet" || type === "trivia") ? "✅ PLACED" : "💸 LOSS"}
               </motion.div>
               <p className="text-foreground font-medium text-sm">{result.message}</p>
-              {result.won && (
+              {(result.won || isPartialReturn) && (
                 <motion.p
                   initial={{ opacity: 0, scale: 0.8, y: 8 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   transition={{ delay: 0.22, type: "spring", stiffness: 300 }}
-                  className="text-primary font-black text-2xl mt-2"
+                  className={`font-black text-2xl mt-2 ${result.won ? "text-primary" : "text-amber-400"}`}
                 >
                   +{result.payout.toLocaleString()} coins
                 </motion.p>
