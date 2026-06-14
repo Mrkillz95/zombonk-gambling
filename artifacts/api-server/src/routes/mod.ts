@@ -172,6 +172,8 @@ router.delete("/mod/games/:id", async (req, res): Promise<void> => {
   const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(rawId, 10);
 
+  await db.delete(betsTable).where(eq(betsTable.gameId, id));
+  await db.delete(gameOptionsTable).where(eq(gameOptionsTable.gameId, id));
   await db.delete(gamesTable).where(eq(gamesTable.id, id));
 
   res.sendStatus(204);
