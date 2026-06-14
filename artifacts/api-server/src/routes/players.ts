@@ -6,6 +6,7 @@ import {
   GetPlayerParams,
   GetPlayerBetsParams,
 } from "@workspace/api-zod";
+import { getStartingBalance } from "../lib/settings.js";
 
 const router: IRouter = Router();
 
@@ -66,9 +67,11 @@ router.post("/players", async (req, res): Promise<void> => {
     }
   }
 
+  const startingBalance = await getStartingBalance();
+
   const [player] = await db
     .insert(playersTable)
-    .values({ name, discordUser: discordUser ?? null, password, ipAddress: ip })
+    .values({ name, discordUser: discordUser ?? null, password, ipAddress: ip, balance: startingBalance })
     .returning();
 
   res.json({

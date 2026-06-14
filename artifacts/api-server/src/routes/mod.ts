@@ -12,7 +12,10 @@ import {
   ModResolveGameBody,
   ModUpdatePlayerBalanceParams,
   ModUpdatePlayerBalanceBody,
+  ModUpdateSettingsBody,
+  ModSetAllBalancesBody,
 } from "@workspace/api-zod";
+import { getStartingBalance, setStartingBalance } from "../lib/settings.js";
 
 const MOD_PASSWORD = process.env.MOD_PASSWORD || "zombonk123";
 
@@ -369,6 +372,41 @@ router.patch("/mod/players/:id/balance", async (req, res): Promise<void> => {
   }
 
   res.json({ ...player, createdAt: player.createdAt.toISOString() });
+});
+
+router.get("/mod/settings", async (req, res): Promise<void> => {
+  if (!checkAuth(req, res)) return;
+  res.json({ startingBalance: await getStartingBalance() });
+});
+
+router.patch("/mod/settings", async (req, res): Promise<void> => {
+  if (!checkAuth(req, res)) return;
+
+  const parsed = ModUpdateSettingsBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  await setStartingBalance(parsed.data.startingBalance);
+  res.json({ startingBalance: parsed.data.startingBalance });
+});
+
+router.post("/mod/players/set-all-balance", async (req, res): Promise<void> => {
+  if (!checkAuth(req, res)) return;
+
+  const parsed = ModSetAllBalancesBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const updated = await db
+    .update(playersTable)
+    .set({ balance: parsed.data.balance })
+    .returning({ id: playersTable.id });
+
+  res.json({ updated: updated.length });
 });
 
 router.get("/mod/stats", async (req, res): Promise<void> => {

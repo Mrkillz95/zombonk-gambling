@@ -36,6 +36,8 @@ import type {
   ModDeleteRedemptionItem200,
   ModListRedemptionRequestsParams,
   ModPlayer,
+  ModSettings,
+  ModSettingsUpdate,
   ModStats,
   PlayInput,
   PlayResult,
@@ -46,6 +48,8 @@ import type {
   RedemptionSubmitBody,
   RegisterPlayerInput,
   ResolveInput,
+  SetAllBalance,
+  SetAllBalanceResult,
   UpdateRedemptionItemBody,
   UpdateRedemptionRequestBody
 } from './api.schemas';
@@ -1397,6 +1401,225 @@ export const useModUpdatePlayerBalance = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getModUpdatePlayerBalanceMutationOptions(options));
+    }
+
+export const getModGetSettingsUrl = () => {
+
+
+
+
+  return `/api/mod/settings`
+}
+
+/**
+ * @summary Get mod settings
+ */
+export const modGetSettings = async ( options?: RequestInit): Promise<ModSettings> => {
+
+  return customFetch<ModSettings>(getModGetSettingsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getModGetSettingsQueryKey = () => {
+    return [
+    `/api/mod/settings`
+    ] as const;
+    }
+
+
+export const getModGetSettingsQueryOptions = <TData = Awaited<ReturnType<typeof modGetSettings>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof modGetSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getModGetSettingsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof modGetSettings>>> = ({ signal }) => modGetSettings({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof modGetSettings>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ModGetSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof modGetSettings>>>
+export type ModGetSettingsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get mod settings
+ */
+
+export function useModGetSettings<TData = Awaited<ReturnType<typeof modGetSettings>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof modGetSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getModGetSettingsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getModUpdateSettingsUrl = () => {
+
+
+
+
+  return `/api/mod/settings`
+}
+
+/**
+ * @summary Update mod settings
+ */
+export const modUpdateSettings = async (modSettingsUpdate: ModSettingsUpdate, options?: RequestInit): Promise<ModSettings> => {
+
+  return customFetch<ModSettings>(getModUpdateSettingsUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      modSettingsUpdate,)
+  }
+);}
+
+
+
+
+export const getModUpdateSettingsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof modUpdateSettings>>, TError,{data: BodyType<ModSettingsUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof modUpdateSettings>>, TError,{data: BodyType<ModSettingsUpdate>}, TContext> => {
+
+const mutationKey = ['modUpdateSettings'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof modUpdateSettings>>, {data: BodyType<ModSettingsUpdate>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  modUpdateSettings(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ModUpdateSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof modUpdateSettings>>>
+    export type ModUpdateSettingsMutationBody = BodyType<ModSettingsUpdate>
+    export type ModUpdateSettingsMutationError = ErrorType<void>
+
+    /**
+ * @summary Update mod settings
+ */
+export const useModUpdateSettings = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof modUpdateSettings>>, TError,{data: BodyType<ModSettingsUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof modUpdateSettings>>,
+        TError,
+        {data: BodyType<ModSettingsUpdate>},
+        TContext
+      > => {
+      return useMutation(getModUpdateSettingsMutationOptions(options));
+    }
+
+export const getModSetAllBalancesUrl = () => {
+
+
+
+
+  return `/api/mod/players/set-all-balance`
+}
+
+/**
+ * @summary Set every player's balance to a fixed amount
+ */
+export const modSetAllBalances = async (setAllBalance: SetAllBalance, options?: RequestInit): Promise<SetAllBalanceResult> => {
+
+  return customFetch<SetAllBalanceResult>(getModSetAllBalancesUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      setAllBalance,)
+  }
+);}
+
+
+
+
+export const getModSetAllBalancesMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof modSetAllBalances>>, TError,{data: BodyType<SetAllBalance>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof modSetAllBalances>>, TError,{data: BodyType<SetAllBalance>}, TContext> => {
+
+const mutationKey = ['modSetAllBalances'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof modSetAllBalances>>, {data: BodyType<SetAllBalance>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  modSetAllBalances(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ModSetAllBalancesMutationResult = NonNullable<Awaited<ReturnType<typeof modSetAllBalances>>>
+    export type ModSetAllBalancesMutationBody = BodyType<SetAllBalance>
+    export type ModSetAllBalancesMutationError = ErrorType<void>
+
+    /**
+ * @summary Set every player's balance to a fixed amount
+ */
+export const useModSetAllBalances = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof modSetAllBalances>>, TError,{data: BodyType<SetAllBalance>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof modSetAllBalances>>,
+        TError,
+        {data: BodyType<SetAllBalance>},
+        TContext
+      > => {
+      return useMutation(getModSetAllBalancesMutationOptions(options));
     }
 
 export const getModGetStatsUrl = () => {

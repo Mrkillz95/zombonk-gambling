@@ -7,6 +7,10 @@ import {
   getModListPlayersQueryKey,
   useModUpdatePlayerBalance,
   useModRigPlayer,
+  useModGetSettings,
+  getModGetSettingsQueryKey,
+  useModUpdateSettings,
+  useModSetAllBalances,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -56,10 +60,61 @@ export default function ModDashboard() {
   const balanceMutation = useModUpdatePlayerBalance({ request: req });
   const rigMutation = useModRigPlayer({ request: req });
 
+  const { data: settings } = useModGetSettings({
+    request: req,
+    query: { enabled: !!password, queryKey: getModGetSettingsQueryKey() },
+  });
+  const settingsMutation = useModUpdateSettings({ request: req });
+  const setAllMutation = useModSetAllBalances({ request: req });
+
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editBalance, setEditBalance] = useState("");
   const [rigOpenId, setRigOpenId] = useState<number | null>(null);
   const [rigEdits, setRigEdits] = useState<Record<number, GlobalRig>>({});
+  const [startingBalanceInput, setStartingBalanceInput] = useState("");
+  const [setAllInput, setSetAllInput] = useState("");
+
+  useEffect(() => {
+    if (settings) setStartingBalanceInput(String(settings.startingBalance));
+  }, [settings]);
+
+  const handleSaveStartingBalance = () => {
+    const amount = parseInt(startingBalanceInput, 10);
+    if (isNaN(amount) || amount < 0) {
+      toast({ title: "Enter a valid amount (0 or more)", variant: "destructive" });
+      return;
+    }
+    settingsMutation.mutate(
+      { data: { startingBalance: amount } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getModGetSettingsQueryKey() });
+          toast({ title: "Starting balance saved" });
+        },
+        onError: () => toast({ title: "Failed to save starting balance", variant: "destructive" }),
+      }
+    );
+  };
+
+  const handleSetAllBalances = () => {
+    const amount = parseInt(setAllInput, 10);
+    if (isNaN(amount) || amount < 0) {
+      toast({ title: "Enter a valid amount (0 or more)", variant: "destructive" });
+      return;
+    }
+    if (!window.confirm(`Set EVERY player's balance to ${amount.toLocaleString()} coins? This cannot be undone.`)) return;
+    setAllMutation.mutate(
+      { data: { balance: amount } },
+      {
+        onSuccess: (res) => {
+          setSetAllInput("");
+          queryClient.invalidateQueries({ queryKey: getModListPlayersQueryKey() });
+          toast({ title: `Updated ${res.updated} player${res.updated === 1 ? "" : "s"}` });
+        },
+        onError: () => toast({ title: "Failed to set balances", variant: "destructive" }),
+      }
+    );
+  };
 
   const handleSaveBalance = (playerId: number) => {
     const newBal = parseInt(editBalance, 10);
@@ -164,6 +219,45 @@ export default function ModDashboard() {
               ))}
             </div>
           )}
+        </div>
+
+        {/* Economy */}
+        <div>
+          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-4">Economy</h2>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="bg-card border border-border rounded-xl p-4">
+              <p className="font-medium text-foreground text-sm">Starting balance</p>
+              <p className="text-xs text-muted-foreground mt-0.5 mb-3">Coins each new player gets when they sign up.</p>
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  min="0"
+                  value={startingBalanceInput}
+                  onChange={e => setStartingBalanceInput(e.target.value)}
+                  className="font-mono"
+                  placeholder="0"
+                  data-testid="input-starting-balance"
+                />
+                <Button onClick={handleSaveStartingBalance} disabled={settingsMutation.isPending} data-testid="button-save-starting-balance">Save</Button>
+              </div>
+            </div>
+            <div className="bg-card border border-orange-500/30 rounded-xl p-4">
+              <p className="font-medium text-foreground text-sm">Set everyone's balance</p>
+              <p className="text-xs text-muted-foreground mt-0.5 mb-3">Overwrite every existing player's balance to this amount.</p>
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  min="0"
+                  value={setAllInput}
+                  onChange={e => setSetAllInput(e.target.value)}
+                  className="font-mono"
+                  placeholder="e.g. 1000"
+                  data-testid="input-set-all-balance"
+                />
+                <Button variant="destructive" onClick={handleSetAllBalances} disabled={setAllMutation.isPending} data-testid="button-set-all-balance">Apply to all</Button>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Players */}

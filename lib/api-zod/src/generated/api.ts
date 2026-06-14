@@ -451,6 +451,58 @@ export const ModUpdatePlayerBalanceResponse = zod.object({
 
 
 /**
+ * @summary Get mod settings
+ */
+export const ModGetSettingsHeader = zod.object({
+  "x-mod-password": zod.string()
+})
+
+export const ModGetSettingsResponse = zod.object({
+  "startingBalance": zod.number()
+})
+
+
+/**
+ * @summary Update mod settings
+ */
+export const ModUpdateSettingsHeader = zod.object({
+  "x-mod-password": zod.string()
+})
+
+export const modUpdateSettingsBodyStartingBalanceMin = 0;
+
+
+
+export const ModUpdateSettingsBody = zod.object({
+  "startingBalance": zod.number().min(modUpdateSettingsBodyStartingBalanceMin)
+})
+
+export const ModUpdateSettingsResponse = zod.object({
+  "startingBalance": zod.number()
+})
+
+
+/**
+ * @summary Set every player's balance to a fixed amount
+ */
+export const ModSetAllBalancesHeader = zod.object({
+  "x-mod-password": zod.string()
+})
+
+export const modSetAllBalancesBodyBalanceMin = 0;
+
+
+
+export const ModSetAllBalancesBody = zod.object({
+  "balance": zod.number().min(modSetAllBalancesBodyBalanceMin)
+})
+
+export const ModSetAllBalancesResponse = zod.object({
+  "updated": zod.number()
+})
+
+
+/**
  * @summary Get mod dashboard stats
  */
 export const ModGetStatsHeader = zod.object({

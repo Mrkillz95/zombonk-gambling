@@ -437,6 +437,79 @@ paths:
         "401":
           description: Unauthorized
 
+  /mod/settings:
+    get:
+      operationId: modGetSettings
+      tags: [mod]
+      summary: Get mod settings
+      parameters:
+        - name: x-mod-password
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModSettings"
+        "401":
+          description: Unauthorized
+    patch:
+      operationId: modUpdateSettings
+      tags: [mod]
+      summary: Update mod settings
+      parameters:
+        - name: x-mod-password
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ModSettingsUpdate"
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModSettings"
+        "401":
+          description: Unauthorized
+
+  /mod/players/set-all-balance:
+    post:
+      operationId: modSetAllBalances
+      tags: [mod]
+      summary: Set every player's balance to a fixed amount
+      parameters:
+        - name: x-mod-password
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetAllBalance"
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SetAllBalanceResult"
+        "401":
+          description: Unauthorized
+
   /mod/stats:
     get:
       operationId: modGetStats
@@ -964,6 +1037,36 @@ components:
       required: [balance]
       properties:
         balance:
+          type: integer
+
+    ModSettings:
+      type: object
+      required: [startingBalance]
+      properties:
+        startingBalance:
+          type: integer
+
+    ModSettingsUpdate:
+      type: object
+      required: [startingBalance]
+      properties:
+        startingBalance:
+          type: integer
+          minimum: 0
+
+    SetAllBalance:
+      type: object
+      required: [balance]
+      properties:
+        balance:
+          type: integer
+          minimum: 0
+
+    SetAllBalanceResult:
+      type: object
+      required: [updated]
+      properties:
+        updated:
           type: integer
 
     ModStats:

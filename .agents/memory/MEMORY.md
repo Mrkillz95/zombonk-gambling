@@ -3,3 +3,4 @@
 - [Mod game-edit contract](mod-game-edit-contract.md) — request schemas must accept null where responses emit null; guard empty Drizzle updates.
 - [Partial returns](partial-returns.md) — payout is independent of won; UI must show won=false & payout>0 as a partial return, not a loss.
 - [Rigged win payout multiplier](rig-win-payout-multiplier.md) — forced wins must pay the player's natural selection odds, not a flat 2x; explicit non-default rig mult overrides.
+- [Dev DB holds real data](dev-db-shared-real-data.md) — dev Postgres has the user's real players/balances; snapshot rows before destructive/bulk tests.

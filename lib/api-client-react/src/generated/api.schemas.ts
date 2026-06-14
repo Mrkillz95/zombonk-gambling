@@ -292,6 +292,24 @@ export interface BalanceUpdate {
   balance: number;
 }
 
+export interface ModSettings {
+  startingBalance: number;
+}
+
+export interface ModSettingsUpdate {
+  /** @minimum 0 */
+  startingBalance: number;
+}
+
+export interface SetAllBalance {
+  /** @minimum 0 */
+  balance: number;
+}
+
+export interface SetAllBalanceResult {
+  updated: number;
+}
+
 export interface ModStats {
   totalPlayers: number;
   totalGames: number;
