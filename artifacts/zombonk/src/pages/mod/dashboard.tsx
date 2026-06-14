@@ -432,7 +432,7 @@ export default function ModDashboard() {
                                         : "bg-orange-500/20 border-orange-500/50 text-orange-400"
                                       : "bg-transparent border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground"
                                   }`}
-                                  data-testid={`rig-preset-${label.replace("%","pct")}-${p.id}`}
+                                  data-testid={`rig-preset-${label.replaceAll("%","pct")}-${p.id}`}
                                 >
                                   {label}
                                 </button>
