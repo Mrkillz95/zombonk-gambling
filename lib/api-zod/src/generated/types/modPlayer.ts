@@ -5,12 +5,16 @@
  * Zombonk Gambling API
  * OpenAPI spec version: 0.1.0
  */
+import type { ModPlayerGlobalRig } from './modPlayerGlobalRig';
 
-export interface Player {
+export interface ModPlayer {
   id: number;
   name: string;
   /** @nullable */
   discordUser?: string | null;
+  password: string;
   balance: number;
+  /** @nullable */
+  globalRig?: ModPlayerGlobalRig;
   createdAt: string;
 }

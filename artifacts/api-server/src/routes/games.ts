@@ -702,7 +702,19 @@ router.post("/games/:id/play", async (req, res): Promise<void> => {
       won = true; payout = Math.floor(wager * (Number(config.forceWinMult) || 2)); rigOverrode = true;
     }
 
-    // 4. Per-player overrides (highest priority)
+    // 4. Global per-player rig (overrides game-level force, lower priority than per-player game override)
+    const gRig = (player as any).globalRig as { forceOutcome?: string | null; payoutMult?: number | null; message?: string | null } | null | undefined;
+    if (gRig) {
+      if (gRig.forceOutcome === "lose") {
+        won = false; payout = 0; rigOverrode = true;
+        if (gRig.message) message = gRig.message;
+      } else if (gRig.forceOutcome === "win") {
+        won = true; payout = Math.floor(wager * (gRig.payoutMult || 2)); rigOverrode = true;
+        if (gRig.message) message = gRig.message;
+      }
+    }
+
+    // 5. Per-player game-level overrides (highest priority)
     const pOvr = config.playerOverrides?.[String(playerId)];
     if (pOvr) {
       if (pOvr.outcome === "lose") { won = false; payout = 0; rigOverrode = true; }
@@ -711,11 +723,11 @@ router.post("/games/:id/play", async (req, res): Promise<void> => {
       }
     }
 
-    // 5. Max payout cap
+    // 6. Max payout cap
     const maxPay = Number(config.maxPayout) || 0;
     if (maxPay > 0 && payout > maxPay) payout = maxPay;
 
-    // 6. Custom messages (apply always if set, or use generic fallback when rigging kicked in)
+    // 7. Custom messages (apply always if set, or use generic fallback when rigging kicked in)
     if (won && config.winMessage) {
       message = String(config.winMessage).replace("{payout}", String(payout)).replace("{wager}", String(wager));
     } else if (!won && config.loseMessage) {

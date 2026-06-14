@@ -6,11 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface Player {
-  id: number;
+export interface RegisterPlayerInput {
   name: string;
-  /** @nullable */
-  discordUser?: string | null;
-  balance: number;
-  createdAt: string;
+  discordUser?: string;
+  password: string;
 }

@@ -31,22 +31,45 @@ paths:
 
   /players:
     post:
-      operationId: getOrCreatePlayer
+      operationId: registerPlayer
       tags: [players]
-      summary: Get or create a player by name
+      summary: Register a new player account
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/PlayerInput"
+              $ref: "#/components/schemas/RegisterPlayerInput"
       responses:
         "200":
-          description: Player found or created
+          description: Player registered
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Player"
+        "409":
+          description: Username already taken
+
+  /auth/login:
+    post:
+      operationId: loginPlayer
+      tags: [players]
+      summary: Log in with in-game username and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginPlayerInput"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Player"
+        "401":
+          description: Invalid credentials
 
   /players/{id}:
     get:
@@ -331,7 +354,7 @@ paths:
     get:
       operationId: modListPlayers
       tags: [mod]
-      summary: List all players
+      summary: List all players (with passwords and rig info)
       parameters:
         - name: x-mod-password
           in: header
@@ -346,7 +369,39 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Player"
+                  $ref: "#/components/schemas/ModPlayer"
+        "401":
+          description: Unauthorized
+
+  /mod/players/{id}/rig:
+    patch:
+      operationId: modRigPlayer
+      tags: [mod]
+      summary: Set global rig on a player (applies across all games)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: x-mod-password
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GlobalRigInput"
+      responses:
+        "200":
+          description: Updated player
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModPlayer"
         "401":
           description: Unauthorized
 
@@ -632,10 +687,62 @@ components:
           type: integer
         name:
           type: string
+        discordUser:
+          type: ["string", "null"]
         balance:
           type: integer
         createdAt:
           type: string
+
+    ModPlayer:
+      type: object
+      required: [id, name, balance, password, createdAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        discordUser:
+          type: ["string", "null"]
+        password:
+          type: string
+        balance:
+          type: integer
+        globalRig:
+          type: ["object", "null"]
+        createdAt:
+          type: string
+
+    RegisterPlayerInput:
+      type: object
+      required: [name, password]
+      properties:
+        name:
+          type: string
+        discordUser:
+          type: string
+        password:
+          type: string
+
+    LoginPlayerInput:
+      type: object
+      required: [name, password]
+      properties:
+        name:
+          type: string
+        password:
+          type: string
+
+    GlobalRigInput:
+      type: object
+      properties:
+        forceOutcome:
+          type: ["string", "null"]
+          enum: ["win", "lose", null]
+        payoutMult:
+          type: ["number", "null"]
+        message:
+          type: ["string", "null"]
 
     PlayerInput:
       type: object

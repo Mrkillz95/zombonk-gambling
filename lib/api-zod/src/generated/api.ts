@@ -17,15 +17,35 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
- * @summary Get or create a player by name
+ * @summary Register a new player account
  */
-export const GetOrCreatePlayerBody = zod.object({
-  "name": zod.string()
+export const RegisterPlayerBody = zod.object({
+  "name": zod.string(),
+  "discordUser": zod.string().optional(),
+  "password": zod.string()
 })
 
-export const GetOrCreatePlayerResponse = zod.object({
+export const RegisterPlayerResponse = zod.object({
   "id": zod.number(),
   "name": zod.string(),
+  "discordUser": zod.string().nullish(),
+  "balance": zod.number(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Log in with in-game username and password
+ */
+export const LoginPlayerBody = zod.object({
+  "name": zod.string(),
+  "password": zod.string()
+})
+
+export const LoginPlayerResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "discordUser": zod.string().nullish(),
   "balance": zod.number(),
   "createdAt": zod.string()
 })
@@ -41,6 +61,7 @@ export const GetPlayerParams = zod.object({
 export const GetPlayerResponse = zod.object({
   "id": zod.number(),
   "name": zod.string(),
+  "discordUser": zod.string().nullish(),
   "balance": zod.number(),
   "createdAt": zod.string()
 })
@@ -351,7 +372,7 @@ export const ModResolveGameResponse = zod.object({
 
 
 /**
- * @summary List all players
+ * @summary List all players (with passwords and rig info)
  */
 export const ModListPlayersHeader = zod.object({
   "x-mod-password": zod.string()
@@ -360,10 +381,45 @@ export const ModListPlayersHeader = zod.object({
 export const ModListPlayersResponseItem = zod.object({
   "id": zod.number(),
   "name": zod.string(),
+  "discordUser": zod.string().nullish(),
+  "password": zod.string(),
   "balance": zod.number(),
+  "globalRig": zod.object({
+
+}).passthrough().nullish(),
   "createdAt": zod.string()
 })
 export const ModListPlayersResponse = zod.array(ModListPlayersResponseItem)
+
+
+/**
+ * @summary Set global rig on a player (applies across all games)
+ */
+export const ModRigPlayerParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ModRigPlayerHeader = zod.object({
+  "x-mod-password": zod.string()
+})
+
+export const ModRigPlayerBody = zod.object({
+  "forceOutcome": zod.union([zod.literal('win'),zod.literal('lose'),zod.literal(null)]).nullish(),
+  "payoutMult": zod.number().nullish(),
+  "message": zod.string().nullish()
+})
+
+export const ModRigPlayerResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "discordUser": zod.string().nullish(),
+  "password": zod.string(),
+  "balance": zod.number(),
+  "globalRig": zod.object({
+
+}).passthrough().nullish(),
+  "createdAt": zod.string()
+})
 
 
 /**
@@ -384,6 +440,7 @@ export const ModUpdatePlayerBalanceBody = zod.object({
 export const ModUpdatePlayerBalanceResponse = zod.object({
   "id": zod.number(),
   "name": zod.string(),
+  "discordUser": zod.string().nullish(),
   "balance": zod.number(),
   "createdAt": zod.string()
 })

@@ -1,11 +1,14 @@
-import { pgTable, serial, text, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
 export const playersTable = pgTable("players", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),
+  discordUser: text("discord_user"),
+  password: text("password").notNull().default(""),
   balance: integer("balance").notNull().default(0),
+  globalRig: jsonb("global_rig"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

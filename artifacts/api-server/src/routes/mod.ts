@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, count, sum, desc } from "drizzle-orm";
 import { db, playersTable, gamesTable, gameOptionsTable, betsTable } from "@workspace/db";
+import z from "zod/v4";
 import {
   ModAuthBody,
   ModCreateGameBody,
@@ -268,8 +269,63 @@ router.get("/mod/players", async (req, res): Promise<void> => {
     .orderBy(desc(playersTable.balance));
 
   res.json(
-    players.map((p) => ({ ...p, createdAt: p.createdAt.toISOString() }))
+    players.map((p) => ({
+      id: p.id,
+      name: p.name,
+      discordUser: p.discordUser,
+      password: p.password,
+      balance: p.balance,
+      globalRig: p.globalRig ?? null,
+      createdAt: p.createdAt.toISOString(),
+    }))
   );
+});
+
+router.patch("/mod/players/:id/rig", async (req, res): Promise<void> => {
+  if (!checkAuth(req, res)) return;
+
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(rawId, 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid player id" });
+    return;
+  }
+
+  const RigBody = z.object({
+    forceOutcome: z.enum(["win", "lose"]).nullable().optional(),
+    payoutMult: z.number().nullable().optional(),
+    message: z.string().nullable().optional(),
+  });
+
+  const parsed = RigBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const rig = parsed.data;
+  const hasRig = rig.forceOutcome != null || rig.payoutMult != null || rig.message != null;
+
+  const [player] = await db
+    .update(playersTable)
+    .set({ globalRig: hasRig ? rig : null })
+    .where(eq(playersTable.id, id))
+    .returning();
+
+  if (!player) {
+    res.status(404).json({ error: "Player not found" });
+    return;
+  }
+
+  res.json({
+    id: player.id,
+    name: player.name,
+    discordUser: player.discordUser,
+    password: player.password,
+    balance: player.balance,
+    globalRig: player.globalRig ?? null,
+    createdAt: player.createdAt.toISOString(),
+  });
 });
 
 router.patch("/mod/players/:id/balance", async (req, res): Promise<void> => {

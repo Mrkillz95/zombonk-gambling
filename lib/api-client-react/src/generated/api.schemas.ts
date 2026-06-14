@@ -12,8 +12,58 @@ export interface HealthStatus {
 export interface Player {
   id: number;
   name: string;
+  /** @nullable */
+  discordUser?: string | null;
   balance: number;
   createdAt: string;
+}
+
+/**
+ * @nullable
+ */
+export type ModPlayerGlobalRig = { [key: string]: unknown } | null;
+
+export interface ModPlayer {
+  id: number;
+  name: string;
+  /** @nullable */
+  discordUser?: string | null;
+  password: string;
+  balance: number;
+  /** @nullable */
+  globalRig?: ModPlayerGlobalRig;
+  createdAt: string;
+}
+
+export interface RegisterPlayerInput {
+  name: string;
+  discordUser?: string;
+  password: string;
+}
+
+export interface LoginPlayerInput {
+  name: string;
+  password: string;
+}
+
+/**
+ * @nullable
+ */
+export type GlobalRigInputForceOutcome = typeof GlobalRigInputForceOutcome[keyof typeof GlobalRigInputForceOutcome] | null;
+
+
+export const GlobalRigInputForceOutcome = {
+  win: 'win',
+  lose: 'lose',
+} as const;
+
+export interface GlobalRigInput {
+  /** @nullable */
+  forceOutcome?: GlobalRigInputForceOutcome;
+  /** @nullable */
+  payoutMult?: number | null;
+  /** @nullable */
+  message?: string | null;
 }
 
 export interface PlayerInput {

@@ -27,21 +27,24 @@ import type {
   Game,
   GameInput,
   GameUpdate,
+  GlobalRigInput,
   HealthStatus,
   ListGamesParams,
+  LoginPlayerInput,
   ModAuthInput,
   ModAuthResult,
   ModDeleteRedemptionItem200,
   ModListRedemptionRequestsParams,
+  ModPlayer,
   ModStats,
   PlayInput,
   PlayResult,
   Player,
-  PlayerInput,
   RedemptionItem,
   RedemptionRequest,
   RedemptionRequestDetail,
   RedemptionSubmitBody,
+  RegisterPlayerInput,
   ResolveInput,
   UpdateRedemptionItemBody,
   UpdateRedemptionRequestBody
@@ -136,7 +139,7 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
 
 
 
-export const getGetOrCreatePlayerUrl = () => {
+export const getRegisterPlayerUrl = () => {
 
 
 
@@ -145,28 +148,28 @@ export const getGetOrCreatePlayerUrl = () => {
 }
 
 /**
- * @summary Get or create a player by name
+ * @summary Register a new player account
  */
-export const getOrCreatePlayer = async (playerInput: PlayerInput, options?: RequestInit): Promise<Player> => {
+export const registerPlayer = async (registerPlayerInput: RegisterPlayerInput, options?: RequestInit): Promise<Player> => {
 
-  return customFetch<Player>(getGetOrCreatePlayerUrl(),
+  return customFetch<Player>(getRegisterPlayerUrl(),
   {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
-      playerInput,)
+      registerPlayerInput,)
   }
 );}
 
 
 
 
-export const getGetOrCreatePlayerMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getOrCreatePlayer>>, TError,{data: BodyType<PlayerInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof getOrCreatePlayer>>, TError,{data: BodyType<PlayerInput>}, TContext> => {
+export const getRegisterPlayerMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof registerPlayer>>, TError,{data: BodyType<RegisterPlayerInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof registerPlayer>>, TError,{data: BodyType<RegisterPlayerInput>}, TContext> => {
 
-const mutationKey = ['getOrCreatePlayer'];
+const mutationKey = ['registerPlayer'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -176,10 +179,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof getOrCreatePlayer>>, {data: BodyType<PlayerInput>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof registerPlayer>>, {data: BodyType<RegisterPlayerInput>}> = (props) => {
           const {data} = props ?? {};
 
-          return  getOrCreatePlayer(data,requestOptions)
+          return  registerPlayer(data,requestOptions)
         }
 
 
@@ -189,22 +192,93 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type GetOrCreatePlayerMutationResult = NonNullable<Awaited<ReturnType<typeof getOrCreatePlayer>>>
-    export type GetOrCreatePlayerMutationBody = BodyType<PlayerInput>
-    export type GetOrCreatePlayerMutationError = ErrorType<unknown>
+    export type RegisterPlayerMutationResult = NonNullable<Awaited<ReturnType<typeof registerPlayer>>>
+    export type RegisterPlayerMutationBody = BodyType<RegisterPlayerInput>
+    export type RegisterPlayerMutationError = ErrorType<void>
 
     /**
- * @summary Get or create a player by name
+ * @summary Register a new player account
  */
-export const useGetOrCreatePlayer = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getOrCreatePlayer>>, TError,{data: BodyType<PlayerInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+export const useRegisterPlayer = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof registerPlayer>>, TError,{data: BodyType<RegisterPlayerInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
-        Awaited<ReturnType<typeof getOrCreatePlayer>>,
+        Awaited<ReturnType<typeof registerPlayer>>,
         TError,
-        {data: BodyType<PlayerInput>},
+        {data: BodyType<RegisterPlayerInput>},
         TContext
       > => {
-      return useMutation(getGetOrCreatePlayerMutationOptions(options));
+      return useMutation(getRegisterPlayerMutationOptions(options));
+    }
+
+export const getLoginPlayerUrl = () => {
+
+
+
+
+  return `/api/auth/login`
+}
+
+/**
+ * @summary Log in with in-game username and password
+ */
+export const loginPlayer = async (loginPlayerInput: LoginPlayerInput, options?: RequestInit): Promise<Player> => {
+
+  return customFetch<Player>(getLoginPlayerUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      loginPlayerInput,)
+  }
+);}
+
+
+
+
+export const getLoginPlayerMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof loginPlayer>>, TError,{data: BodyType<LoginPlayerInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof loginPlayer>>, TError,{data: BodyType<LoginPlayerInput>}, TContext> => {
+
+const mutationKey = ['loginPlayer'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof loginPlayer>>, {data: BodyType<LoginPlayerInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  loginPlayer(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LoginPlayerMutationResult = NonNullable<Awaited<ReturnType<typeof loginPlayer>>>
+    export type LoginPlayerMutationBody = BodyType<LoginPlayerInput>
+    export type LoginPlayerMutationError = ErrorType<void>
+
+    /**
+ * @summary Log in with in-game username and password
+ */
+export const useLoginPlayer = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof loginPlayer>>, TError,{data: BodyType<LoginPlayerInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof loginPlayer>>,
+        TError,
+        {data: BodyType<LoginPlayerInput>},
+        TContext
+      > => {
+      return useMutation(getLoginPlayerMutationOptions(options));
     }
 
 export const getGetPlayerUrl = (id: number,) => {
@@ -1113,11 +1187,11 @@ export const getModListPlayersUrl = () => {
 }
 
 /**
- * @summary List all players
+ * @summary List all players (with passwords and rig info)
  */
-export const modListPlayers = async ( options?: RequestInit): Promise<Player[]> => {
+export const modListPlayers = async ( options?: RequestInit): Promise<ModPlayer[]> => {
 
-  return customFetch<Player[]>(getModListPlayersUrl(),
+  return customFetch<ModPlayer[]>(getModListPlayersUrl(),
   {
     ...options,
     method: 'GET'
@@ -1160,7 +1234,7 @@ export type ModListPlayersQueryError = ErrorType<void>
 
 
 /**
- * @summary List all players
+ * @summary List all players (with passwords and rig info)
  */
 
 export function useModListPlayers<TData = Awaited<ReturnType<typeof modListPlayers>>, TError = ErrorType<void>>(
@@ -1180,6 +1254,78 @@ export function useModListPlayers<TData = Awaited<ReturnType<typeof modListPlaye
 
 
 
+
+export const getModRigPlayerUrl = (id: number,) => {
+
+
+
+
+  return `/api/mod/players/${id}/rig`
+}
+
+/**
+ * @summary Set global rig on a player (applies across all games)
+ */
+export const modRigPlayer = async (id: number,
+    globalRigInput: GlobalRigInput, options?: RequestInit): Promise<ModPlayer> => {
+
+  return customFetch<ModPlayer>(getModRigPlayerUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      globalRigInput,)
+  }
+);}
+
+
+
+
+export const getModRigPlayerMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof modRigPlayer>>, TError,{id: number;data: BodyType<GlobalRigInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof modRigPlayer>>, TError,{id: number;data: BodyType<GlobalRigInput>}, TContext> => {
+
+const mutationKey = ['modRigPlayer'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof modRigPlayer>>, {id: number;data: BodyType<GlobalRigInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  modRigPlayer(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ModRigPlayerMutationResult = NonNullable<Awaited<ReturnType<typeof modRigPlayer>>>
+    export type ModRigPlayerMutationBody = BodyType<GlobalRigInput>
+    export type ModRigPlayerMutationError = ErrorType<void>
+
+    /**
+ * @summary Set global rig on a player (applies across all games)
+ */
+export const useModRigPlayer = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof modRigPlayer>>, TError,{id: number;data: BodyType<GlobalRigInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof modRigPlayer>>,
+        TError,
+        {id: number;data: BodyType<GlobalRigInput>},
+        TContext
+      > => {
+      return useMutation(getModRigPlayerMutationOptions(options));
+    }
 
 export const getModUpdatePlayerBalanceUrl = (id: number,) => {
 
