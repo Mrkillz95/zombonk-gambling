@@ -51,6 +51,7 @@ export * from './redemptionRequestStatus';
 export * from './redemptionSubmitBody';
 export * from './registerPlayerInput';
 export * from './resolveInput';
+export * from './seedResult';
 export * from './setAllBalance';
 export * from './setAllBalanceResult';
 export * from './updateRedemptionItemBody';

@@ -26,11 +26,12 @@ const GAME_LABELS: Record<string, string> = {
   plinko: "Plinko", blackjack: "Blackjack", crash: "Crash",
   keno: "Keno", scratch_card: "Scratch Card", video_poker: "Video Poker",
   mines: "Minesweeper", war: "War", baccarat: "Baccarat",
-  three_card_poker: "Three Card Poker",
+  three_card_poker: "Three Card Poker", dragon_tiger: "Dragon Tiger",
+  sic_bo: "Sic Bo",
 };
 
 // Types where player picks an option
-const OPTION_TYPES = new Set(["coin_flip","match_bet","mystery_box","roulette","card_draw","over_under","trivia","color_pick","hi_lo","lucky_spin","blackjack","baccarat"]);
+const OPTION_TYPES = new Set(["coin_flip","match_bet","mystery_box","roulette","card_draw","over_under","trivia","color_pick","hi_lo","lucky_spin","blackjack","baccarat","dragon_tiger","sic_bo"]);
 // Types where player enters a number
 const NUMBER_TYPES = new Set(["number_pick","dice","jackpot","crash","keno","mines"]);
 // Types with no player choice (just click play)
@@ -976,6 +977,65 @@ export default function GamePage() {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* ── DRAGON TIGER ── */}
+            {type === "dragon_tiger" && game.options && (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground text-center">Higher card wins — Dragon vs Tiger</p>
+                {result?.details ? (
+                  <div className="flex gap-6 items-center justify-center py-2">
+                    <div className="text-center space-y-1">
+                      <p className={`text-xs font-bold ${(result.details as any).outcome==="dragon"?"text-red-400":"text-muted-foreground"}`}>🐉 Dragon</p>
+                      <PlayingCard face={(result.details as any).dragonCard.face} suit={(result.details as any).dragonCard.suit} />
+                    </div>
+                    <span className="text-muted-foreground font-bold text-sm">vs</span>
+                    <div className="text-center space-y-1">
+                      <p className={`text-xs font-bold ${(result.details as any).outcome==="tiger"?"text-amber-400":"text-muted-foreground"}`}>🐯 Tiger</p>
+                      <PlayingCard face={(result.details as any).tigerCard.face} suit={(result.details as any).tigerCard.suit} />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex gap-8 items-center justify-center py-4">
+                    <div className="text-center space-y-1">
+                      <p className="text-xs text-red-400">🐉 Dragon</p>
+                      <div className="w-12 h-16 bg-red-950/40 border-2 border-red-700/40 rounded flex items-center justify-center text-red-400/40 text-xl">?</div>
+                    </div>
+                    <span className="text-muted-foreground font-bold">vs</span>
+                    <div className="text-center space-y-1">
+                      <p className="text-xs text-amber-400">🐯 Tiger</p>
+                      <div className="w-12 h-16 bg-amber-950/40 border-2 border-amber-700/40 rounded flex items-center justify-center text-amber-400/40 text-xl">?</div>
+                    </div>
+                  </div>
+                )}
+                <p className="text-sm text-muted-foreground">Place your bet</p>
+                <OptionGrid options={game.options} selected={selectedOptionId} onSelect={setSelectedOptionId} columns={3} />
+              </div>
+            )}
+
+            {/* ── SIC BO ── */}
+            {type === "sic_bo" && game.options && (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground text-center">Three dice — bet Small, Big, or a Triple</p>
+                {result?.details ? (
+                  <div className="space-y-2">
+                    <div className="flex gap-3 justify-center py-1">
+                      {(result.details as any).dice.map((d: number, i: number) => (
+                        <div key={i} className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center text-xl font-black ${result.won ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-foreground"}`}>{d}</div>
+                      ))}
+                    </div>
+                    <p className="text-center text-sm font-bold text-foreground">Sum: {(result.details as any).sum}{(result.details as any).isTriple ? " — Triple!" : ""}</p>
+                  </div>
+                ) : (
+                  <div className="flex gap-3 justify-center py-2">
+                    {Array(3).fill(null).map((_,i) => (
+                      <div key={i} className="w-12 h-12 rounded-lg border-2 border-border bg-background flex items-center justify-center text-muted-foreground/40 text-xl font-black">?</div>
+                    ))}
+                  </div>
+                )}
+                <p className="text-sm text-muted-foreground">Place your bet</p>
+                <OptionGrid options={game.options} selected={selectedOptionId} onSelect={setSelectedOptionId} columns={3} />
               </div>
             )}
 

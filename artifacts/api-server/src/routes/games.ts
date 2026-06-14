@@ -468,6 +468,37 @@ function reconcileForRig(o: {
       const cards = randomHighCardHand(3);
       return { reels: ["High Card"], details: { cards, handName: "High Card", multiplier: 0 }, message: `High Card only. No winning hand.` };
     }
+    case "dragon_tiger": {
+      const dtLabel = (selectedOpt?.label || "").toLowerCase();
+      const betSide = dtLabel.includes("tiger") ? "tiger" : dtLabel.includes("tie") ? "tie" : "dragon";
+      // For a forced loss, land on any outcome other than the player's bet.
+      const outcome = won ? betSide : pickRandom(["dragon", "tiger", "tie"].filter((s) => s !== betSide));
+      let dv: number; let tv: number;
+      if (outcome === "tie") { dv = 1 + Math.floor(secureRandom() * 13); tv = dv; }
+      else if (outcome === "dragon") { dv = 2 + Math.floor(secureRandom() * 12); tv = 1 + Math.floor(secureRandom() * (dv - 1)); }
+      else { tv = 2 + Math.floor(secureRandom() * 12); dv = 1 + Math.floor(secureRandom() * (tv - 1)); }
+      const dragonCard = randCard(dv); const tigerCard = randCard(tv);
+      const dtWinner = outcome.charAt(0).toUpperCase() + outcome.slice(1);
+      return { reels: [`${dragonCard.face}${dragonCard.suit}`, "vs", `${tigerCard.face}${tigerCard.suit}`], details: { dragonCard, tigerCard, dragonValue: dv, tigerValue: tv, outcome, betSide }, message: won ? `${dtWinner} wins! Dragon ${dragonCard.face}${dragonCard.suit} vs Tiger ${tigerCard.face}${tigerCard.suit}. Won ${payout} coins!` : `${dtWinner} wins. You bet ${betSide}. Dragon ${dragonCard.face}${dragonCard.suit} vs Tiger ${tigerCard.face}${tigerCard.suit}. No win.` };
+    }
+    case "sic_bo": {
+      const sbLabel = (selectedOpt?.label || "").toLowerCase();
+      const betKind = sbLabel.includes("triple") ? "triple" : sbLabel.includes("big") ? "big" : "small";
+      const r6 = () => 1 + Math.floor(secureRandom() * 6);
+      const isTrip = (d: number[]) => d[0] === d[1] && d[1] === d[2];
+      const sm = (d: number[]) => d[0]! + d[1]! + d[2]!;
+      const gen = (pred: (d: number[]) => boolean): number[] => {
+        for (let i = 0; i < 300; i++) { const d = [r6(), r6(), r6()]; if (pred(d)) return d; }
+        return [r6(), r6(), r6()];
+      };
+      let dice3: number[];
+      if (betKind === "triple") dice3 = won ? gen(isTrip) : gen((d) => !isTrip(d));
+      else if (betKind === "small") dice3 = won ? gen((d) => !isTrip(d) && sm(d) >= 4 && sm(d) <= 10) : gen((d) => isTrip(d) || sm(d) >= 11);
+      else dice3 = won ? gen((d) => !isTrip(d) && sm(d) >= 11 && sm(d) <= 17) : gen((d) => isTrip(d) || sm(d) <= 10);
+      const sum3 = sm(dice3); const isTriple = isTrip(dice3);
+      const sbResult = isTriple ? "triple" : sum3 >= 11 ? "big" : "small";
+      return { reels: dice3.map(String), details: { dice: dice3, sum: sum3, isTriple, result: sbResult, betKind }, message: won ? `Rolled ${dice3.join("-")} (sum ${sum3})${isTriple ? " — Triple!" : ""}. ${selectedOpt?.label} wins! Won ${payout} coins!` : `Rolled ${dice3.join("-")} (sum ${sum3})${isTriple ? " — Triple!" : ""}. ${selectedOpt?.label} loses. No win.` };
+    }
     default:
       return { reels: [won ? "WIN" : "LOSE"], details: {}, message: won ? `Won ${payout} coins!` : `No win.` };
   }
@@ -950,11 +981,41 @@ router.post("/games/:id/play", async (req, res): Promise<void> => {
     const bCards = [drawCard(), drawCard()];
     let pScore = baccaratScore(pCards);
     let bScore = baccaratScore(bCards);
+    // Proper Punto Banco third-card tableau. Baccarat point value of a single card
+    // (A=1, 2-9 face value, 10/J/Q/K=0) drives the banker's drawing decision.
+    const cardPoint = (c: { value: number }) => (c.value >= 10 ? 0 : c.value);
+    // Naturals: an 8 or 9 on the first two cards ends the hand — no draws.
     if (pScore < 8 && bScore < 8) {
-      if (pScore <= 5) pCards.push(drawCard());
-      pScore = baccaratScore(pCards);
-      if (bScore <= 5) bCards.push(drawCard());
-      bScore = baccaratScore(bCards);
+      let playerThird: number | null = null;
+      // Player rule: stand on 6-7, draw on 0-5.
+      if (pScore <= 5) {
+        const c = drawCard();
+        pCards.push(c);
+        playerThird = cardPoint(c);
+        pScore = baccaratScore(pCards);
+      }
+      // Banker rule depends on whether the player drew and, if so, the value of
+      // the player's third card.
+      let bankerDraws: boolean;
+      if (playerThird === null) {
+        bankerDraws = bScore <= 5;
+      } else if (bScore <= 2) {
+        bankerDraws = true;
+      } else if (bScore === 3) {
+        bankerDraws = playerThird !== 8;
+      } else if (bScore === 4) {
+        bankerDraws = playerThird >= 2 && playerThird <= 7;
+      } else if (bScore === 5) {
+        bankerDraws = playerThird >= 4 && playerThird <= 7;
+      } else if (bScore === 6) {
+        bankerDraws = playerThird >= 6 && playerThird <= 7;
+      } else {
+        bankerDraws = false; // banker stands on 7
+      }
+      if (bankerDraws) {
+        bCards.push(drawCard());
+        bScore = baccaratScore(bCards);
+      }
     }
     const bacOutcome = pScore > bScore ? "player" : bScore > pScore ? "banker" : "tie";
     won = bacOutcome === betType;
@@ -993,6 +1054,50 @@ router.post("/games/:id/play", async (req, res): Promise<void> => {
     message = mult3 > 0
       ? `${hand3Name}! ${mult3}x — Won ${payout} coins!`
       : `High Card only. No winning hand.`;
+
+  // ── DRAGON TIGER ───────────────────────────────────────────────────────────
+  } else if (game.type === "dragon_tiger") {
+    const selectedOption = options.find(o => o.id === optionId);
+    if (!selectedOption) { res.status(400).json({ error: "Bet on Dragon, Tiger, or Tie" }); return; }
+    const dtLabel = selectedOption.label.toLowerCase();
+    const betSide = dtLabel.includes("tiger") ? "tiger" : dtLabel.includes("tie") ? "tie" : "dragon";
+    // One card each. Ace is LOW in Dragon Tiger, so raw card value (A=1 … K=13)
+    // is the natural rank.
+    const dragonCard = drawCard();
+    const tigerCard = drawCard();
+    const dtOutcome = dragonCard.value > tigerCard.value ? "dragon"
+      : tigerCard.value > dragonCard.value ? "tiger" : "tie";
+    won = dtOutcome === betSide;
+    payout = won ? Math.floor(wager * parseFloat(selectedOption.odds)) : 0;
+    reels = [`${dragonCard.face}${dragonCard.suit}`, "vs", `${tigerCard.face}${tigerCard.suit}`];
+    details = { dragonCard, tigerCard, dragonValue: dragonCard.value, tigerValue: tigerCard.value, outcome: dtOutcome, betSide };
+    const dtWinner = dtOutcome.charAt(0).toUpperCase() + dtOutcome.slice(1);
+    message = won
+      ? `${dtWinner} wins! Dragon ${dragonCard.face}${dragonCard.suit} vs Tiger ${tigerCard.face}${tigerCard.suit}. Won ${payout} coins!`
+      : `${dtWinner} wins. You bet ${betSide}. Dragon ${dragonCard.face}${dragonCard.suit} vs Tiger ${tigerCard.face}${tigerCard.suit}. No win.`;
+
+  // ── SIC BO ─────────────────────────────────────────────────────────────────
+  } else if (game.type === "sic_bo") {
+    const selectedOption = options.find(o => o.id === optionId);
+    if (!selectedOption) { res.status(400).json({ error: "Bet on Small, Big, or Triple" }); return; }
+    const sbLabel = selectedOption.label.toLowerCase();
+    const betKind = sbLabel.includes("triple") ? "triple" : sbLabel.includes("big") ? "big" : "small";
+    const dice3 = [
+      1 + Math.floor(secureRandom() * 6),
+      1 + Math.floor(secureRandom() * 6),
+      1 + Math.floor(secureRandom() * 6),
+    ];
+    const sum3 = dice3[0]! + dice3[1]! + dice3[2]!;
+    const isTriple = dice3[0] === dice3[1] && dice3[1] === dice3[2];
+    // A triple voids Small/Big bets (house edge): only the Triple bet wins on a triple.
+    const sbResult = isTriple ? "triple" : sum3 >= 11 ? "big" : "small";
+    won = betKind === sbResult;
+    payout = won ? Math.floor(wager * parseFloat(selectedOption.odds)) : 0;
+    reels = dice3.map(String);
+    details = { dice: dice3, sum: sum3, isTriple, result: sbResult, betKind };
+    message = won
+      ? `Rolled ${dice3.join("-")} (sum ${sum3})${isTriple ? " — Triple!" : ""}. ${selectedOption.label} wins! Won ${payout} coins!`
+      : `Rolled ${dice3.join("-")} (sum ${sum3})${isTriple ? " — Triple!" : ""}. ${selectedOption.label} loses. No win.`;
   }
 
   // ── RIGGING LAYER ─────────────────────────────────────────────────────────

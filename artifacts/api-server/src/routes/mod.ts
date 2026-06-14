@@ -541,4 +541,82 @@ router.get("/mod/flagged-players", async (req, res): Promise<void> => {
   res.json(flagged.map(({ _rank, ...rest }) => rest));
 });
 
+// Legacy reskins that have been consolidated into a canonical game type. Existing
+// rows are re-pointed so historical bets stay linked (bets reference gameId, not
+// type) and the play/reconcile branches for the canonical type take over.
+const TYPE_MIGRATIONS: [from: string, to: string][] = [
+  ["color_pick", "mystery_box"],
+  ["lucky_spin", "mystery_box"],
+  ["trivia", "match_bet"],
+  ["hi_lo", "over_under"],
+];
+
+// The canonical casino set. Each entry is created only when no game of that type
+// already exists, so seeding is idempotent and never clobbers the operator's
+// existing games.
+const SEED_GAMES: {
+  type: string;
+  title: string;
+  config: Record<string, unknown>;
+  options?: { label: string; odds: number; emoji?: string; weight?: number }[];
+}[] = [
+  { type: "blackjack", title: "Blackjack", config: { win_multiplier: 2 }, options: [{ label: "Hit", odds: 2 }, { label: "Stand", odds: 2 }] },
+  { type: "baccarat", title: "Baccarat", config: {}, options: [{ label: "Player", odds: 2, emoji: "🔵" }, { label: "Banker", odds: 1.95, emoji: "🔴" }, { label: "Tie", odds: 8, emoji: "🟢" }] },
+  { type: "dragon_tiger", title: "Dragon Tiger", config: {}, options: [{ label: "Dragon", odds: 2, emoji: "🐉" }, { label: "Tiger", odds: 2, emoji: "🐯" }, { label: "Tie", odds: 8, emoji: "🤝" }] },
+  { type: "sic_bo", title: "Sic Bo", config: {}, options: [{ label: "Small (4-10)", odds: 2, emoji: "🎲" }, { label: "Big (11-17)", odds: 2, emoji: "🎲" }, { label: "Any Triple", odds: 30, emoji: "💎" }] },
+  { type: "war", title: "Casino War", config: { tieMult: 3, winMult: 2 } },
+  { type: "three_card_poker", title: "Three Card Poker", config: {} },
+  { type: "video_poker", title: "Video Poker", config: {} },
+  { type: "crash", title: "Crash", config: { maxTarget: 50 } },
+  { type: "keno", title: "Keno", config: { maxSpots: 10 } },
+  { type: "scratch_card", title: "Scratch Card", config: {} },
+  { type: "mines", title: "Minesweeper", config: { maxMines: 24 } },
+];
+
+router.post("/mod/seed", async (req, res): Promise<void> => {
+  if (!checkAuth(req, res)) return;
+
+  let migrated = 0;
+  for (const [from, to] of TYPE_MIGRATIONS) {
+    const rows = await db
+      .update(gamesTable)
+      .set({ type: to })
+      .where(eq(gamesTable.type, from))
+      .returning({ id: gamesTable.id });
+    migrated += rows.length;
+  }
+
+  let created = 0;
+  for (const spec of SEED_GAMES) {
+    const [existing] = await db
+      .select({ c: count() })
+      .from(gamesTable)
+      .where(eq(gamesTable.type, spec.type));
+    if (Number(existing?.c ?? 0) > 0) continue;
+
+    const [game] = await db
+      .insert(gamesTable)
+      .values({ title: spec.title, type: spec.type, config: spec.config, status: "open" })
+      .returning();
+    if (spec.options && spec.options.length > 0) {
+      await db.insert(gameOptionsTable).values(
+        spec.options.map((o) => ({
+          gameId: game.id,
+          label: o.label,
+          odds: String(o.odds),
+          emoji: o.emoji ?? null,
+          weight: o.weight ?? 1,
+        }))
+      );
+    }
+    created++;
+  }
+
+  res.json({
+    migrated,
+    created,
+    message: `Migrated ${migrated} legacy game(s); created ${created} new game(s).`,
+  });
+});
+
 export default router;

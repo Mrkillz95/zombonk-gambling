@@ -101,7 +101,7 @@ export const ListGamesQueryParams = zod.object({
 export const ListGamesResponseItem = zod.object({
   "id": zod.number(),
   "title": zod.string(),
-  "type": zod.enum(['slots', 'coin_flip', 'match_bet', 'number_pick', 'mystery_box', 'dice', 'roulette', 'wheel', 'card_draw', 'over_under', 'trivia', 'jackpot', 'color_pick', 'hi_lo', 'lucky_spin', 'plinko', 'blackjack', 'crash', 'keno', 'scratch_card', 'video_poker', 'mines', 'war', 'baccarat', 'three_card_poker']),
+  "type": zod.enum(['slots', 'coin_flip', 'match_bet', 'number_pick', 'mystery_box', 'dice', 'roulette', 'wheel', 'card_draw', 'over_under', 'trivia', 'jackpot', 'color_pick', 'hi_lo', 'lucky_spin', 'plinko', 'blackjack', 'crash', 'keno', 'scratch_card', 'video_poker', 'mines', 'war', 'baccarat', 'three_card_poker', 'dragon_tiger', 'sic_bo']),
   "status": zod.enum(['open', 'closed', 'resolved']),
   "config": zod.object({
 
@@ -150,7 +150,7 @@ export const GetGameParams = zod.object({
 export const GetGameResponse = zod.object({
   "id": zod.number(),
   "title": zod.string(),
-  "type": zod.enum(['slots', 'coin_flip', 'match_bet', 'number_pick', 'mystery_box', 'dice', 'roulette', 'wheel', 'card_draw', 'over_under', 'trivia', 'jackpot', 'color_pick', 'hi_lo', 'lucky_spin', 'plinko', 'blackjack', 'crash', 'keno', 'scratch_card', 'video_poker', 'mines', 'war', 'baccarat', 'three_card_poker']),
+  "type": zod.enum(['slots', 'coin_flip', 'match_bet', 'number_pick', 'mystery_box', 'dice', 'roulette', 'wheel', 'card_draw', 'over_under', 'trivia', 'jackpot', 'color_pick', 'hi_lo', 'lucky_spin', 'plinko', 'blackjack', 'crash', 'keno', 'scratch_card', 'video_poker', 'mines', 'war', 'baccarat', 'three_card_poker', 'dragon_tiger', 'sic_bo']),
   "status": zod.enum(['open', 'closed', 'resolved']),
   "config": zod.object({
 
@@ -218,7 +218,7 @@ export const ModListGamesHeader = zod.object({
 export const ModListGamesResponseItem = zod.object({
   "id": zod.number(),
   "title": zod.string(),
-  "type": zod.enum(['slots', 'coin_flip', 'match_bet', 'number_pick', 'mystery_box', 'dice', 'roulette', 'wheel', 'card_draw', 'over_under', 'trivia', 'jackpot', 'color_pick', 'hi_lo', 'lucky_spin', 'plinko', 'blackjack', 'crash', 'keno', 'scratch_card', 'video_poker', 'mines', 'war', 'baccarat', 'three_card_poker']),
+  "type": zod.enum(['slots', 'coin_flip', 'match_bet', 'number_pick', 'mystery_box', 'dice', 'roulette', 'wheel', 'card_draw', 'over_under', 'trivia', 'jackpot', 'color_pick', 'hi_lo', 'lucky_spin', 'plinko', 'blackjack', 'crash', 'keno', 'scratch_card', 'video_poker', 'mines', 'war', 'baccarat', 'three_card_poker', 'dragon_tiger', 'sic_bo']),
   "status": zod.enum(['open', 'closed', 'resolved']),
   "config": zod.object({
 
@@ -250,7 +250,7 @@ export const ModCreateGameHeader = zod.object({
 
 export const ModCreateGameBody = zod.object({
   "title": zod.string(),
-  "type": zod.enum(['slots', 'coin_flip', 'match_bet', 'number_pick', 'mystery_box', 'dice', 'roulette', 'wheel', 'card_draw', 'over_under', 'trivia', 'jackpot', 'color_pick', 'hi_lo', 'lucky_spin', 'plinko', 'blackjack', 'crash', 'keno', 'scratch_card', 'video_poker', 'mines', 'war', 'baccarat', 'three_card_poker']),
+  "type": zod.enum(['slots', 'coin_flip', 'match_bet', 'number_pick', 'mystery_box', 'dice', 'roulette', 'wheel', 'card_draw', 'over_under', 'trivia', 'jackpot', 'color_pick', 'hi_lo', 'lucky_spin', 'plinko', 'blackjack', 'crash', 'keno', 'scratch_card', 'video_poker', 'mines', 'war', 'baccarat', 'three_card_poker', 'dragon_tiger', 'sic_bo']),
   "config": zod.object({
 
 }).passthrough(),
@@ -297,7 +297,7 @@ export const ModUpdateGameBody = zod.object({
 export const ModUpdateGameResponse = zod.object({
   "id": zod.number(),
   "title": zod.string(),
-  "type": zod.enum(['slots', 'coin_flip', 'match_bet', 'number_pick', 'mystery_box', 'dice', 'roulette', 'wheel', 'card_draw', 'over_under', 'trivia', 'jackpot', 'color_pick', 'hi_lo', 'lucky_spin', 'plinko', 'blackjack', 'crash', 'keno', 'scratch_card', 'video_poker', 'mines', 'war', 'baccarat', 'three_card_poker']),
+  "type": zod.enum(['slots', 'coin_flip', 'match_bet', 'number_pick', 'mystery_box', 'dice', 'roulette', 'wheel', 'card_draw', 'over_under', 'trivia', 'jackpot', 'color_pick', 'hi_lo', 'lucky_spin', 'plinko', 'blackjack', 'crash', 'keno', 'scratch_card', 'video_poker', 'mines', 'war', 'baccarat', 'three_card_poker', 'dragon_tiger', 'sic_bo']),
   "status": zod.enum(['open', 'closed', 'resolved']),
   "config": zod.object({
 
@@ -349,7 +349,7 @@ export const ModResolveGameBody = zod.object({
 export const ModResolveGameResponse = zod.object({
   "id": zod.number(),
   "title": zod.string(),
-  "type": zod.enum(['slots', 'coin_flip', 'match_bet', 'number_pick', 'mystery_box', 'dice', 'roulette', 'wheel', 'card_draw', 'over_under', 'trivia', 'jackpot', 'color_pick', 'hi_lo', 'lucky_spin', 'plinko', 'blackjack', 'crash', 'keno', 'scratch_card', 'video_poker', 'mines', 'war', 'baccarat', 'three_card_poker']),
+  "type": zod.enum(['slots', 'coin_flip', 'match_bet', 'number_pick', 'mystery_box', 'dice', 'roulette', 'wheel', 'card_draw', 'over_under', 'trivia', 'jackpot', 'color_pick', 'hi_lo', 'lucky_spin', 'plinko', 'blackjack', 'crash', 'keno', 'scratch_card', 'video_poker', 'mines', 'war', 'baccarat', 'three_card_poker', 'dragon_tiger', 'sic_bo']),
   "status": zod.enum(['open', 'closed', 'resolved']),
   "config": zod.object({
 
@@ -557,6 +557,20 @@ export const ModGetStatsResponse = zod.object({
   "openGames": zod.number(),
   "totalBets": zod.number(),
   "totalWagered": zod.number()
+})
+
+
+/**
+ * @summary Idempotently migrate legacy game types and create any missing standard games
+ */
+export const ModSeedGamesHeader = zod.object({
+  "x-mod-password": zod.string()
+})
+
+export const ModSeedGamesResponse = zod.object({
+  "migrated": zod.number(),
+  "created": zod.number(),
+  "message": zod.string()
 })
 
 

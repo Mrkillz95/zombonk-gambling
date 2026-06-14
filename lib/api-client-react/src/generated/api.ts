@@ -49,6 +49,7 @@ import type {
   RedemptionSubmitBody,
   RegisterPlayerInput,
   ResolveInput,
+  SeedResult,
   SetAllBalance,
   SetAllBalanceResult,
   UpdateRedemptionItemBody,
@@ -1846,6 +1847,76 @@ export function useModGetStats<TData = Awaited<ReturnType<typeof modGetStats>>, 
 
 
 
+
+export const getModSeedGamesUrl = () => {
+
+
+
+
+  return `/api/mod/seed`
+}
+
+/**
+ * @summary Idempotently migrate legacy game types and create any missing standard games
+ */
+export const modSeedGames = async ( options?: RequestInit): Promise<SeedResult> => {
+
+  return customFetch<SeedResult>(getModSeedGamesUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getModSeedGamesMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof modSeedGames>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof modSeedGames>>, TError,void, TContext> => {
+
+const mutationKey = ['modSeedGames'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof modSeedGames>>, void> = () => {
+
+
+          return  modSeedGames(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ModSeedGamesMutationResult = NonNullable<Awaited<ReturnType<typeof modSeedGames>>>
+
+    export type ModSeedGamesMutationError = ErrorType<void>
+
+    /**
+ * @summary Idempotently migrate legacy game types and create any missing standard games
+ */
+export const useModSeedGames = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof modSeedGames>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof modSeedGames>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getModSeedGamesMutationOptions(options));
+    }
 
 export const getListRedemptionItemsUrl = () => {
 

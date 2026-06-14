@@ -152,6 +152,8 @@ export const GameType = {
   war: 'war',
   baccarat: 'baccarat',
   three_card_poker: 'three_card_poker',
+  dragon_tiger: 'dragon_tiger',
+  sic_bo: 'sic_bo',
 } as const;
 
 export type GameStatus = typeof GameStatus[keyof typeof GameStatus];
@@ -229,6 +231,8 @@ export const GameInputType = {
   war: 'war',
   baccarat: 'baccarat',
   three_card_poker: 'three_card_poker',
+  dragon_tiger: 'dragon_tiger',
+  sic_bo: 'sic_bo',
 } as const;
 
 export type GameInputConfig = { [key: string]: unknown };
@@ -349,6 +353,12 @@ export interface SetAllBalance {
 
 export interface SetAllBalanceResult {
   updated: number;
+}
+
+export interface SeedResult {
+  migrated: number;
+  created: number;
+  message: string;
 }
 
 export interface ModStats {

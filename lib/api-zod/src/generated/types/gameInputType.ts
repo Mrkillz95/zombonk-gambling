@@ -35,4 +35,6 @@ export const GameInputType = {
   war: 'war',
   baccarat: 'baccarat',
   three_card_poker: 'three_card_poker',
+  dragon_tiger: 'dragon_tiger',
+  sic_bo: 'sic_bo',
 } as const;

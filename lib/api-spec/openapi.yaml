@@ -576,6 +576,27 @@ paths:
         "401":
           description: Unauthorized
 
+  /mod/seed:
+    post:
+      operationId: modSeedGames
+      tags: [mod]
+      summary: Idempotently migrate legacy game types and create any missing standard games
+      parameters:
+        - name: x-mod-password
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Seed result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeedResult"
+        "401":
+          description: Unauthorized
+
   /redemptions/items:
     get:
       operationId: listRedemptionItems
@@ -956,7 +977,7 @@ components:
           type: string
         type:
           type: string
-          enum: [slots, coin_flip, match_bet, number_pick, mystery_box, dice, roulette, wheel, card_draw, over_under, trivia, jackpot, color_pick, hi_lo, lucky_spin, plinko, blackjack, crash, keno, scratch_card, video_poker, mines, war, baccarat, three_card_poker]
+          enum: [slots, coin_flip, match_bet, number_pick, mystery_box, dice, roulette, wheel, card_draw, over_under, trivia, jackpot, color_pick, hi_lo, lucky_spin, plinko, blackjack, crash, keno, scratch_card, video_poker, mines, war, baccarat, three_card_poker, dragon_tiger, sic_bo]
         status:
           type: string
           enum: [open, closed, resolved]
@@ -1005,7 +1026,7 @@ components:
           type: string
         type:
           type: string
-          enum: [slots, coin_flip, match_bet, number_pick, mystery_box, dice, roulette, wheel, card_draw, over_under, trivia, jackpot, color_pick, hi_lo, lucky_spin, plinko, blackjack, crash, keno, scratch_card, video_poker, mines, war, baccarat, three_card_poker]
+          enum: [slots, coin_flip, match_bet, number_pick, mystery_box, dice, roulette, wheel, card_draw, over_under, trivia, jackpot, color_pick, hi_lo, lucky_spin, plinko, blackjack, crash, keno, scratch_card, video_poker, mines, war, baccarat, three_card_poker, dragon_tiger, sic_bo]
         config:
           type: object
         options:
@@ -1182,6 +1203,17 @@ components:
       properties:
         updated:
           type: integer
+
+    SeedResult:
+      type: object
+      required: [migrated, created, message]
+      properties:
+        migrated:
+          type: integer
+        created:
+          type: integer
+        message:
+          type: string
 
     ModStats:
       type: object

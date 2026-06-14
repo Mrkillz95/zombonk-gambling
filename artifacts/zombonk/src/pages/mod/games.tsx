@@ -22,7 +22,8 @@ type GameType =
   | "dice" | "roulette" | "wheel" | "card_draw" | "over_under"
   | "trivia" | "jackpot" | "color_pick" | "hi_lo" | "lucky_spin"
   | "plinko" | "blackjack" | "crash" | "keno" | "scratch_card"
-  | "video_poker" | "mines" | "war" | "baccarat" | "three_card_poker";
+  | "video_poker" | "mines" | "war" | "baccarat" | "three_card_poker"
+  | "dragon_tiger" | "sic_bo";
 
 interface OptionInput {
   label: string; odds: number; emoji: string; weight: number;
@@ -149,6 +150,16 @@ const TYPE_DEFAULT_OPTIONS: Partial<Record<GameType, OptionInput[]>> = {
     { label: "Banker", odds: 1.95, emoji: "🔴", weight: 1 },
     { label: "Tie", odds: 8, emoji: "🟢", weight: 1 },
   ],
+  dragon_tiger: [
+    { label: "Dragon", odds: 2, emoji: "🐉", weight: 1 },
+    { label: "Tiger", odds: 2, emoji: "🐯", weight: 1 },
+    { label: "Tie", odds: 8, emoji: "🤝", weight: 1 },
+  ],
+  sic_bo: [
+    { label: "Small (4-10)", odds: 2, emoji: "🎲", weight: 1 },
+    { label: "Big (11-17)", odds: 2, emoji: "🎲", weight: 1 },
+    { label: "Any Triple", odds: 30, emoji: "💎", weight: 1 },
+  ],
 };
 
 // Types with no options (config-based)
@@ -156,7 +167,7 @@ const CONFIG_ONLY_TYPES = new Set<GameType>(["slots", "number_pick", "dice", "wh
   "plinko", "crash", "keno", "scratch_card", "video_poker", "mines", "war", "three_card_poker"]);
 // Types with options
 const OPTION_TYPES = new Set<GameType>(["coin_flip", "match_bet", "mystery_box", "roulette", "card_draw", "trivia", "color_pick", "lucky_spin",
-  "blackjack", "baccarat"]);
+  "blackjack", "baccarat", "dragon_tiger", "sic_bo"]);
 
 const ALL_TYPES: { value: GameType; label: string }[] = [
   { value: "coin_flip", label: "Coin Flip" },
@@ -169,11 +180,7 @@ const ALL_TYPES: { value: GameType; label: string }[] = [
   { value: "wheel", label: "Spin the Wheel" },
   { value: "card_draw", label: "Card Draw" },
   { value: "over_under", label: "Over / Under" },
-  { value: "trivia", label: "Trivia Q&A" },
   { value: "jackpot", label: "Jackpot Lottery" },
-  { value: "color_pick", label: "Color Pick" },
-  { value: "hi_lo", label: "Hi-Lo" },
-  { value: "lucky_spin", label: "Lucky Spin" },
   { value: "plinko", label: "Plinko" },
   { value: "blackjack", label: "Blackjack" },
   { value: "crash", label: "Crash" },
@@ -184,6 +191,8 @@ const ALL_TYPES: { value: GameType; label: string }[] = [
   { value: "war", label: "War" },
   { value: "baccarat", label: "Baccarat" },
   { value: "three_card_poker", label: "Three Card Poker" },
+  { value: "dragon_tiger", label: "Dragon Tiger" },
+  { value: "sic_bo", label: "Sic Bo" },
 ];
 
 const STATUS_COLORS: Record<string, string> = {
