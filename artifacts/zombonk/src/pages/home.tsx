@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { useGetOrCreatePlayer, getGetPlayerQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -34,9 +34,7 @@ export default function Home() {
     );
   };
 
-  const handleContinue = () => {
-    setLocation("/lobby");
-  };
+  const handleContinue = () => setLocation("/lobby");
 
   const handleLogout = () => {
     clearStoredPlayer();
@@ -46,7 +44,6 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-md text-center space-y-8">
-        {/* Logo area */}
         <div className="space-y-2">
           <div className="text-6xl font-black tracking-tighter text-primary glow-primary inline-block">
             ZOMBONK
@@ -56,7 +53,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Divider */}
         <div className="h-px bg-border" />
 
         {stored ? (
@@ -65,19 +61,10 @@ export default function Home() {
               <p className="text-muted-foreground text-sm">Welcome back,</p>
               <p className="text-2xl font-bold text-foreground">{stored.name}</p>
             </div>
-            <Button
-              className="w-full h-12 text-base font-semibold"
-              onClick={handleContinue}
-              data-testid="button-continue"
-            >
+            <Button className="w-full h-12 text-base font-semibold" onClick={handleContinue} data-testid="button-continue">
               Enter the Casino
             </Button>
-            <Button
-              variant="ghost"
-              className="w-full text-muted-foreground"
-              onClick={handleLogout}
-              data-testid="button-logout"
-            >
+            <Button variant="ghost" className="w-full text-muted-foreground" onClick={handleLogout} data-testid="button-logout">
               Switch Player
             </Button>
           </div>
@@ -95,7 +82,7 @@ export default function Home() {
                 autoFocus
               />
               <p className="text-xs text-muted-foreground">
-                New players start with 1,000 coins
+                Ask the mod for coins to get started
               </p>
             </div>
             <Button

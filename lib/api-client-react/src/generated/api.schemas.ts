@@ -29,6 +29,16 @@ export const GameType = {
   match_bet: 'match_bet',
   number_pick: 'number_pick',
   mystery_box: 'mystery_box',
+  dice: 'dice',
+  roulette: 'roulette',
+  wheel: 'wheel',
+  card_draw: 'card_draw',
+  over_under: 'over_under',
+  trivia: 'trivia',
+  jackpot: 'jackpot',
+  color_pick: 'color_pick',
+  hi_lo: 'hi_lo',
+  lucky_spin: 'lucky_spin',
 } as const;
 
 export type GameStatus = typeof GameStatus[keyof typeof GameStatus];
@@ -80,6 +90,16 @@ export const GameInputType = {
   match_bet: 'match_bet',
   number_pick: 'number_pick',
   mystery_box: 'mystery_box',
+  dice: 'dice',
+  roulette: 'roulette',
+  wheel: 'wheel',
+  card_draw: 'card_draw',
+  over_under: 'over_under',
+  trivia: 'trivia',
+  jackpot: 'jackpot',
+  color_pick: 'color_pick',
+  hi_lo: 'hi_lo',
+  lucky_spin: 'lucky_spin',
 } as const;
 
 export type GameInputConfig = { [key: string]: unknown };

@@ -5,7 +5,7 @@ import { z } from "zod/v4";
 export const playersTable = pgTable("players", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),
-  balance: integer("balance").notNull().default(1000),
+  balance: integer("balance").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
