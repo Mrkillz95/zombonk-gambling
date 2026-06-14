@@ -4,4 +4,5 @@
 - [Partial returns](partial-returns.md) — payout is independent of won; UI must show won=false & payout>0 as a partial return, not a loss.
 - [Rigged win payout multiplier](rig-win-payout-multiplier.md) — forced wins must pay the player's natural selection odds, not a flat 2x; explicit non-default rig mult overrides.
 - [Dev DB holds real data](dev-db-shared-real-data.md) — dev Postgres has the user's real players/balances; snapshot rows before destructive/bulk tests.
-- [Mod auth gating](mod-auth-gate.md) — server checkAuth is the real control; client ModGuard must verify password via /mod/auth, not just check localStorage presence.
+- [Mod auth gating](mod-auth-gate.md) — server checkAuth is the real control; client ModGuard must verify password via /mod/auth, not just check localStorage presence; IP allowlist enforced centrally by modIpGate.
+- [CSPRNG for randomness](csprng-randomness.md) — never use Math.random; use the package-local secureRandom() drop-ins (server crypto.randomBytes, client getRandomValues) for all outcomes.

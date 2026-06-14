@@ -7,6 +7,7 @@ import {
   PlayGameParams,
   PlayGameBody,
 } from "@workspace/api-zod";
+import { secureRandom } from "../lib/rng.js";
 
 const router: IRouter = Router();
 
@@ -101,8 +102,8 @@ const CARD_FACES = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"] as con
 const CARD_SUITS = ["♠","♥","♦","♣"] as const;
 
 function drawCard(): { face: string; suit: string; value: number } {
-  const v = Math.floor(Math.random() * 13);
-  return { face: CARD_FACES[v]!, suit: CARD_SUITS[Math.floor(Math.random() * 4)]!, value: v + 1 };
+  const v = Math.floor(secureRandom() * 13);
+  return { face: CARD_FACES[v]!, suit: CARD_SUITS[Math.floor(secureRandom() * 4)]!, value: v + 1 };
 }
 
 function makeDeck(): { face: string; suit: string; value: number }[] {
@@ -111,7 +112,7 @@ function makeDeck(): { face: string; suit: string; value: number }[] {
     for (let f = 0; f < 13; f++)
       deck.push({ face: CARD_FACES[f]!, suit: CARD_SUITS[s]!, value: f + 1 });
   for (let i = deck.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(secureRandom() * (i + 1));
     const tmp = deck[i]!; deck[i] = deck[j]!; deck[j] = tmp;
   }
   return deck;
@@ -130,7 +131,7 @@ function baccaratScore(cards: { value: number }[]): number {
 
 function weightedRandom(items: { weight?: number | null }[]): number {
   const total = items.reduce((s, o) => s + (o.weight || 1), 0);
-  let r = Math.random() * total;
+  let r = secureRandom() * total;
   for (let i = 0; i < items.length; i++) {
     r -= items[i].weight || 1;
     if (r <= 0) return i;
@@ -150,7 +151,7 @@ function mkCard(value: number, suitIdx: number) {
   return { face: CARD_FACES[(value - 1) % 13]!, suit: CARD_SUITS[suitIdx % 4]!, value };
 }
 function randCard(value: number) {
-  return mkCard(value, Math.floor(Math.random() * 4));
+  return mkCard(value, Math.floor(secureRandom() * 4));
 }
 function bjHandForTotal(total: number): { face: string; suit: string; value: number }[] {
   if (total > 21) return [randCard(10), randCard(10), randCard(10)];
@@ -189,12 +190,12 @@ function threeCardWinHand(effMult: number) {
   return best;
 }
 function pickRandom<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)] as T;
+  return arr[Math.floor(secureRandom() * arr.length)] as T;
 }
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(secureRandom() * (i + 1));
     [a[i], a[j]] = [a[j]!, a[i]!];
   }
   return a;
@@ -208,7 +209,7 @@ function randomHighCardHand(n: number) {
       vals.every((v, i) => i === 0 || v === vals[i - 1]! + 1) ||
       (n === 3 && JSON.stringify(vals) === JSON.stringify([1, 12, 13])) ||
       (n === 5 && JSON.stringify(vals) === JSON.stringify([1, 10, 11, 12, 13]));
-    const suits = vals.map(() => Math.floor(Math.random() * 4));
+    const suits = vals.map(() => Math.floor(secureRandom() * 4));
     const isFlush = suits.every((s) => s === suits[0]);
     if (!isStraight && !isFlush) return vals.map((v, i) => mkCard(v, suits[i]!));
   }
@@ -251,7 +252,7 @@ function reconcileForRig(o: {
       const spun = Array.from({ length: reelCount }, () => pickRandom(pool));
       if (spun.every((s: any) => s.label === spun[0].label)) {
         const alt = pool.find((x: any) => x.label !== spun[0].label) || { label: "Miss ❌", emoji: "X" };
-        spun[Math.floor(Math.random() * reelCount)] = alt;
+        spun[Math.floor(secureRandom() * reelCount)] = alt;
       }
       return { reels: spun.map((s: any) => s.label), details: { reels: spun.map((s: any) => ({ label: s.label, emoji: s.emoji })) }, message: `No match. Better luck next time!` };
     }
@@ -274,14 +275,14 @@ function reconcileForRig(o: {
       const min = config.min || 1; const max = config.max || 10;
       const picked = parseInt(pick || "0", 10) || min;
       let drawn = picked;
-      if (!won && max > min) { do { drawn = min + Math.floor(Math.random() * (max - min + 1)); } while (drawn === picked); }
+      if (!won && max > min) { do { drawn = min + Math.floor(secureRandom() * (max - min + 1)); } while (drawn === picked); }
       return { reels: [String(drawn)], details: { picked, drawn, min, max }, message: won ? `Drew ${drawn}! You picked ${picked} — correct! Won ${payout} coins!` : `Drew ${drawn}. You picked ${picked}. No win.` };
     }
     case "jackpot": {
       const tickets = config.tickets || 100;
       const picked = parseInt(pick || "0", 10) || 1;
       let drawn = picked;
-      if (!won && tickets > 1) { do { drawn = 1 + Math.floor(Math.random() * tickets); } while (drawn === picked); }
+      if (!won && tickets > 1) { do { drawn = 1 + Math.floor(secureRandom() * tickets); } while (drawn === picked); }
       return { reels: [String(drawn)], details: { picked, drawn, tickets, jackpot: config.jackpot || payout }, message: won ? `Winning ticket: #${drawn}! You held #${picked}. JACKPOT! Won ${payout} coins!` : `Winning ticket: #${drawn}. You held #${picked}. Better luck next time!` };
     }
     case "dice": {
@@ -289,7 +290,7 @@ function reconcileForRig(o: {
       const minSum = numDice; const maxSum = sides * numDice;
       const picked = parseInt(pick || "0", 10) || minSum;
       let target = picked;
-      if (!won && maxSum > minSum) { do { target = minSum + Math.floor(Math.random() * (maxSum - minSum + 1)); } while (target === picked); }
+      if (!won && maxSum > minSum) { do { target = minSum + Math.floor(secureRandom() * (maxSum - minSum + 1)); } while (target === picked); }
       // Distribute the target sum across dice in random order so the individual
       // dice vary instead of always front-loading.
       const rolls = Array(numDice).fill(1); let rem = target - numDice;
@@ -300,16 +301,16 @@ function reconcileForRig(o: {
     case "over_under": {
       const line = config.line || 50;
       const isOver = (selectedOpt?.label || "").toLowerCase().includes("over");
-      const above = Math.min(100, line + 1 + Math.floor(Math.random() * Math.max(1, 100 - line)));
-      const below = Math.max(1, line - 1 - Math.floor(Math.random() * Math.max(1, line - 1)));
+      const above = Math.min(100, line + 1 + Math.floor(secureRandom() * Math.max(1, 100 - line)));
+      const below = Math.max(1, line - 1 - Math.floor(secureRandom() * Math.max(1, line - 1)));
       const drawn = won ? (isOver ? above : below) : (isOver ? below : above);
       return { reels: [String(drawn)], details: { drawn, line, picked: selectedOpt?.label }, message: won ? `Drew ${drawn} (line: ${line}). ${selectedOpt?.label} is correct! Won ${payout} coins!` : `Drew ${drawn} (line: ${line}). ${selectedOpt?.label} is wrong. No win.` };
     }
     case "hi_lo": {
       const shown = config.shown || 50;
       const isHigher = (selectedOpt?.label || "").toLowerCase().includes("hi");
-      const above = Math.min(100, shown + 1 + Math.floor(Math.random() * Math.max(1, 100 - shown)));
-      const belowEq = Math.max(1, shown - Math.floor(Math.random() * Math.max(1, shown)));
+      const above = Math.min(100, shown + 1 + Math.floor(secureRandom() * Math.max(1, 100 - shown)));
+      const belowEq = Math.max(1, shown - Math.floor(secureRandom() * Math.max(1, shown)));
       const drawn = won ? (isHigher ? above : belowEq) : (isHigher ? belowEq : above);
       return { reels: [String(drawn)], details: { shown, drawn, picked: selectedOpt?.label }, message: won ? `Shown: ${shown} → Drew ${drawn}. ${selectedOpt?.label} is correct! Won ${payout} coins!` : `Shown: ${shown} → Drew ${drawn}. ${selectedOpt?.label} is wrong. No win.` };
     }
@@ -367,8 +368,8 @@ function reconcileForRig(o: {
       let crashPoint: number;
       // Win: crash somewhere at/above the cashout target (random margin so it
       // varies). Loss: crash somewhere below the target (already random).
-      if (won) crashPoint = round2(Math.max(target, effMult) * (1 + Math.random() * 0.6));
-      else { crashPoint = round2(Math.max(1, 1 + Math.random() * Math.max(0.1, target - 1) * 0.9)); if (crashPoint >= target) crashPoint = round2(Math.max(1, target - 0.1)); }
+      if (won) crashPoint = round2(Math.max(target, effMult) * (1 + secureRandom() * 0.6));
+      else { crashPoint = round2(Math.max(1, 1 + secureRandom() * Math.max(0.1, target - 1) * 0.9)); if (crashPoint >= target) crashPoint = round2(Math.max(1, target - 0.1)); }
       return { reels: [`${crashPoint}x`], details: { crashPoint, target }, message: won ? `🚀 Cashed out at ${target}x! Crashed at ${crashPoint}x. Won ${payout} coins!` : `💥 Crashed at ${crashPoint}x before your ${target}x target. No win.` };
     }
     case "keno": {
@@ -422,7 +423,7 @@ function reconcileForRig(o: {
       // Random mine layout + random picked tile so repeated rigs don't show the
       // same board every time.
       const minePositions = new Set<number>();
-      while (minePositions.size < Math.min(mineCount, gridSize - 1)) { minePositions.add(Math.floor(Math.random() * gridSize)); }
+      while (minePositions.size < Math.min(mineCount, gridSize - 1)) { minePositions.add(Math.floor(secureRandom() * gridSize)); }
       const safeTiles = Array.from({ length: gridSize }, (_, i) => i).filter((i) => !minePositions.has(i));
       const tileIndex = won ? pickRandom(safeTiles) : pickRandom([...minePositions]);
       const grid = Array.from({ length: gridSize }, (_, i) => (minePositions.has(i) ? (i === tileIndex ? "picked_mine" : "mine") : (i === tileIndex ? "picked_safe" : "safe")));
@@ -438,8 +439,8 @@ function reconcileForRig(o: {
     }
     case "war": {
       // Random card values where the winner's card outranks the loser's.
-      const hiV = 2 + Math.floor(Math.random() * 12); // 2..13
-      const loV = 1 + Math.floor(Math.random() * (hiV - 1)); // 1..hiV-1
+      const hiV = 2 + Math.floor(secureRandom() * 12); // 2..13
+      const loV = 1 + Math.floor(secureRandom() * (hiV - 1)); // 1..hiV-1
       const pc = won ? randCard(hiV) : randCard(loV);
       const dc = won ? randCard(loV) : randCard(hiV);
       return { reels: [`${pc.face}${pc.suit}`, "vs", `${dc.face}${dc.suit}`], details: { playerCard: pc, dealerCard: dc, war: false }, message: won ? `Your ${pc.face}${pc.suit} beats ${dc.face}${dc.suit}! Won ${payout} coins!` : `Dealer's ${dc.face}${dc.suit} beats your ${pc.face}${pc.suit}. No win.` };
@@ -448,11 +449,11 @@ function reconcileForRig(o: {
       const betLabel = (selectedOpt?.label || "").toLowerCase();
       const betType = betLabel.includes("bank") ? "banker" : betLabel.includes("tie") ? "tie" : "player";
       const outcome = won ? betType : (betType === "player" ? "banker" : "player");
-      const mkScore = (s: number) => [mkCard(s === 0 ? 10 : s, Math.floor(Math.random() * 4)), mkCard(13, Math.floor(Math.random() * 4))];
+      const mkScore = (s: number) => [mkCard(s === 0 ? 10 : s, Math.floor(secureRandom() * 4)), mkCard(13, Math.floor(secureRandom() * 4))];
       let pScore: number; let bScore: number;
-      if (outcome === "tie") { pScore = Math.floor(Math.random() * 10); bScore = pScore; }
-      else if (outcome === "player") { pScore = 6 + Math.floor(Math.random() * 4); bScore = Math.floor(Math.random() * pScore); }
-      else { bScore = 6 + Math.floor(Math.random() * 4); pScore = Math.floor(Math.random() * bScore); }
+      if (outcome === "tie") { pScore = Math.floor(secureRandom() * 10); bScore = pScore; }
+      else if (outcome === "player") { pScore = 6 + Math.floor(secureRandom() * 4); bScore = Math.floor(secureRandom() * pScore); }
+      else { bScore = 6 + Math.floor(secureRandom() * 4); pScore = Math.floor(secureRandom() * bScore); }
       const playerCards = mkScore(pScore); const bankerCards = mkScore(bScore);
       const winner = outcome.charAt(0).toUpperCase() + outcome.slice(1);
       return { reels: [`P:${pScore}`, `B:${bScore}`], details: { playerCards, bankerCards, playerScore: pScore, bankerScore: bScore, outcome, betType }, message: won ? `${winner} wins (P:${pScore} B:${bScore})! Won ${payout} coins!` : `${winner} wins (P:${pScore} B:${bScore}). You bet on ${betType}. No win.` };
@@ -549,7 +550,7 @@ router.post("/games/:id/play", async (req, res): Promise<void> => {
   } else if (game.type === "coin_flip") {
     const selectedOption = options.find((o) => o.id === optionId);
     if (!selectedOption) { res.status(400).json({ error: "Must pick heads or tails" }); return; }
-    const flip = options[Math.floor(Math.random() * options.length)];
+    const flip = options[Math.floor(secureRandom() * options.length)];
     reels = [flip.label];
     details = { result: flip.label, picked: selectedOption.label };
     won = flip.id === selectedOption.id;
@@ -582,7 +583,7 @@ router.post("/games/:id/play", async (req, res): Promise<void> => {
     if (isNaN(picked) || picked < min || picked > max) {
       res.status(400).json({ error: `Pick a number between ${min} and ${max}` }); return;
     }
-    const drawn = Math.floor(Math.random() * (max - min + 1)) + min;
+    const drawn = Math.floor(secureRandom() * (max - min + 1)) + min;
     reels = [String(drawn)];
     details = { picked, drawn, min, max };
     won = picked === drawn;
@@ -626,7 +627,7 @@ router.post("/games/:id/play", async (req, res): Promise<void> => {
     if (isNaN(picked) || picked < minNum || picked > maxNum) {
       res.status(400).json({ error: `Pick a number between ${minNum} and ${maxNum}` }); return;
     }
-    const rolls = Array.from({ length: numDice }, () => Math.floor(Math.random() * sides) + 1);
+    const rolls = Array.from({ length: numDice }, () => Math.floor(secureRandom() * sides) + 1);
     const drawn = rolls.reduce((a, b) => a + b, 0);
     reels = [String(drawn)];
     details = { picked, drawn, rolls, sides, numDice };
@@ -680,7 +681,7 @@ router.post("/games/:id/play", async (req, res): Promise<void> => {
   } else if (game.type === "card_draw") {
     const selectedOption = options.find((o) => o.id === optionId);
     if (!selectedOption) { res.status(400).json({ error: "Must pick a card suit" }); return; }
-    const drawnOption = options[Math.floor(Math.random() * options.length)];
+    const drawnOption = options[Math.floor(secureRandom() * options.length)];
     reels = [drawnOption.label];
     details = { drawn: drawnOption.label, picked: selectedOption.label };
     won = drawnOption.id === selectedOption.id;
@@ -696,7 +697,7 @@ router.post("/games/:id/play", async (req, res): Promise<void> => {
     const selectedOption = options.find((o) => o.id === optionId);
     if (!selectedOption) { res.status(400).json({ error: "Must pick Over or Under" }); return; }
     const line = config.line || 50;
-    const drawn = Math.floor(Math.random() * 100) + 1;
+    const drawn = Math.floor(secureRandom() * 100) + 1;
     reels = [String(drawn)];
     details = { drawn, line, picked: selectedOption.label };
     const isOver = selectedOption.label.toLowerCase().includes("over");
@@ -712,8 +713,8 @@ router.post("/games/:id/play", async (req, res): Promise<void> => {
   } else if (game.type === "hi_lo") {
     const selectedOption = options.find((o) => o.id === optionId);
     if (!selectedOption) { res.status(400).json({ error: "Must pick Higher or Lower" }); return; }
-    const shown = config.shown || Math.floor(Math.random() * 90) + 5;
-    const drawn = Math.floor(Math.random() * 100) + 1;
+    const shown = config.shown || Math.floor(secureRandom() * 90) + 5;
+    const drawn = Math.floor(secureRandom() * 100) + 1;
     reels = [String(drawn)];
     details = { shown, drawn, picked: selectedOption.label };
     const isHigher = selectedOption.label.toLowerCase().includes("hi") || selectedOption.label.toLowerCase().includes("high");
@@ -733,7 +734,7 @@ router.post("/games/:id/play", async (req, res): Promise<void> => {
     if (isNaN(picked) || picked < 1 || picked > tickets) {
       res.status(400).json({ error: `Pick a ticket number between 1 and ${tickets}` }); return;
     }
-    const drawn = Math.floor(Math.random() * tickets) + 1;
+    const drawn = Math.floor(secureRandom() * tickets) + 1;
     reels = [String(drawn)];
     details = { picked, drawn, tickets, jackpot: jackpotAmt };
     won = picked === drawn;
@@ -748,7 +749,7 @@ router.post("/games/:id/play", async (req, res): Promise<void> => {
   } else if (game.type === "plinko") {
     const rows: number = config.rows || 8;
     const mults: number[] = config.multipliers || [0.3, 0.5, 1, 2, 5, 2, 1, 0.5, 0.3];
-    const path: string[] = Array.from({ length: rows }, () => Math.random() < 0.5 ? "R" : "L");
+    const path: string[] = Array.from({ length: rows }, () => secureRandom() < 0.5 ? "R" : "L");
     const slot = Math.min(path.filter(d => d === "R").length, mults.length - 1);
     const multiplier = mults[slot] ?? 1;
     payout = Math.floor(wager * multiplier);
@@ -794,7 +795,7 @@ router.post("/games/:id/play", async (req, res): Promise<void> => {
     if (isNaN(target) || target < 1.1 || target > maxTarget) {
       res.status(400).json({ error: `Enter a cashout multiplier between 1.1 and ${maxTarget}` }); return;
     }
-    const crashPoint = parseFloat(Math.max(1.0, 0.99 / Math.random()).toFixed(2));
+    const crashPoint = parseFloat(Math.max(1.0, 0.99 / secureRandom()).toFixed(2));
     won = crashPoint >= target;
     payout = won ? Math.floor(wager * target) : 0;
     reels = [`${crashPoint}x`];
@@ -813,9 +814,9 @@ router.post("/games/:id/play", async (req, res): Promise<void> => {
       res.status(400).json({ error: `Pick between 1 and ${maxSpots} spots` }); return;
     }
     const playerNums = new Set<number>();
-    while (playerNums.size < spots) playerNums.add(Math.floor(Math.random() * pool) + 1);
+    while (playerNums.size < spots) playerNums.add(Math.floor(secureRandom() * pool) + 1);
     const drawnNums = new Set<number>();
-    while (drawnNums.size < drawCount) drawnNums.add(Math.floor(Math.random() * pool) + 1);
+    while (drawnNums.size < drawCount) drawnNums.add(Math.floor(secureRandom() * pool) + 1);
     const matches = [...playerNums].filter(n => drawnNums.has(n)).length;
     const kenoPay: Record<number, Record<number, number>> = {
       1: {1:3}, 2: {2:9}, 3: {3:45,2:3}, 4: {4:100,3:5,2:2},
@@ -898,15 +899,15 @@ router.post("/games/:id/play", async (req, res): Promise<void> => {
       res.status(400).json({ error: `Pick 1–${maxMines} mines` }); return;
     }
     const gridSize = 25;
-    const isSafe = Math.random() < (gridSize - mineCount) / gridSize;
+    const isSafe = secureRandom() < (gridSize - mineCount) / gridSize;
     const mineMult = parseFloat(Math.max(1.05, (gridSize / (gridSize - mineCount)) * 0.95).toFixed(2));
     const minePositions = new Set<number>();
-    while (minePositions.size < mineCount) minePositions.add(Math.floor(Math.random() * gridSize));
+    while (minePositions.size < mineCount) minePositions.add(Math.floor(secureRandom() * gridSize));
     const safeTiles = Array.from({length:gridSize},(_,i)=>i).filter(i=>!minePositions.has(i));
     const mineTiles = [...minePositions];
     const tileIndex = isSafe
-      ? safeTiles[Math.floor(Math.random() * safeTiles.length)]!
-      : mineTiles[Math.floor(Math.random() * mineTiles.length)]!;
+      ? safeTiles[Math.floor(secureRandom() * safeTiles.length)]!
+      : mineTiles[Math.floor(secureRandom() * mineTiles.length)]!;
     payout = isSafe ? Math.floor(wager * mineMult) : 0;
     won = isSafe;
     reels = [isSafe ? "SAFE 💎" : "MINE 💣"];
@@ -1024,7 +1025,7 @@ router.post("/games/:id/play", async (req, res): Promise<void> => {
 
     // 1. Per-option trueWinPct: override win probability based on the chosen option
     if (selectedOpt && selectedOpt.trueWinPct !== null && selectedOpt.trueWinPct !== undefined) {
-      const shouldWin = Math.random() * 100 < selectedOpt.trueWinPct;
+      const shouldWin = secureRandom() * 100 < selectedOpt.trueWinPct;
       won = shouldWin;
       payout = won ? Math.floor(wager * parseFloat(selectedOpt.odds)) : 0;
       rigOverrode = true;
@@ -1108,7 +1109,7 @@ router.post("/games/:id/play", async (req, res): Promise<void> => {
           const loseInBand = Math.abs(rateIfLose - targetRate) <= TOL;
           let shouldWin: boolean;
           if (winInBand && loseInBand) {
-            shouldWin = Math.random() < targetRate; // both keep us in band → random within band
+            shouldWin = secureRandom() < targetRate; // both keep us in band → random within band
           } else if (winInBand) {
             shouldWin = true;
           } else if (loseInBand) {

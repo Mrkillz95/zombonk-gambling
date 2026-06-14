@@ -18,6 +18,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
+import { secureRandom } from "@/lib/secure-random"
 import {
   Tooltip,
   TooltipContent,
@@ -609,7 +610,7 @@ function SidebarMenuSkeleton({
 }) {
   // Random width between 50 to 90%.
   const width = React.useMemo(() => {
-    return `${Math.floor(Math.random() * 40) + 50}%`
+    return `${Math.floor(secureRandom() * 40) + 50}%`
   }, [])
 
   return (

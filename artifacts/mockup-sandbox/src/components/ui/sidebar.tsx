@@ -596,7 +596,8 @@ function SidebarMenuSkeleton({
   showIcon?: boolean
 }) {
   const width = React.useMemo(() => {
-    return `${Math.floor(Math.random() * 40) + 50}%`
+    const n = crypto.getRandomValues(new Uint32Array(1))[0]! % 40
+    return `${n + 50}%`
   }, [])
 
   return (

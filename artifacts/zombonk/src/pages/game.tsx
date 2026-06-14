@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getStoredPlayer } from "@/lib/player-store";
+import { secureRandom } from "@/lib/secure-random";
 import { useToast } from "@/hooks/use-toast";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -66,7 +67,7 @@ function SlotMachine({ config, isSpinning, result, won }: {
     if (!isSpinning) return;
     const iv = setInterval(() => {
       setSpinDisplay(Array(reelCount).fill(null).map(
-        () => items[Math.floor(Math.random() * items.length)]?.label ?? "?"
+        () => items[Math.floor(secureRandom() * items.length)]?.label ?? "?"
       ));
     }, 85);
     return () => clearInterval(iv);
@@ -252,10 +253,10 @@ function WinParticles() {
   const particles = useMemo(() =>
     Array.from({ length: 14 }, (_, i) => ({
       id: i,
-      angle: (i / 14) * 360 + (Math.random() - 0.5) * 18,
-      dist: 65 + Math.random() * 70,
-      delay: Math.random() * 0.18,
-      scale: 0.8 + Math.random() * 0.7,
+      angle: (i / 14) * 360 + (secureRandom() - 0.5) * 18,
+      dist: 65 + secureRandom() * 70,
+      delay: secureRandom() * 0.18,
+      scale: 0.8 + secureRandom() * 0.7,
       sym: ["🪙", "⭐", "💰", "✨", "🎉"][i % 5],
     })), []
   );
