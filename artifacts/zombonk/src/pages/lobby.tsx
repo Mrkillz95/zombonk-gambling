@@ -2,10 +2,21 @@ import { useLocation, Link } from "wouter";
 import { useListGames, useGetRecentActivity, useGetPlayer, getGetPlayerQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
+import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getStoredPlayer } from "@/lib/player-store";
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 28, scale: 0.96 },
+  show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring" as const, stiffness: 280, damping: 22 } },
+};
+
+const feedVariants = {
+  hidden: { opacity: 0, x: 30 },
+  show: { opacity: 1, x: 0, transition: { type: "spring" as const, stiffness: 300, damping: 24 } },
+};
 
 const GAME_TYPE_LABELS: Record<string, string> = {
   slots: "Slot Machine",
@@ -85,10 +96,18 @@ export default function Lobby() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <motion.div
+            className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+            initial="hidden"
+            animate="show"
+            variants={{ show: { transition: { staggerChildren: 0.07 } } }}
+          >
             {games?.map((game) => (
-              <div
+              <motion.div
                 key={game.id}
+                variants={cardVariants}
+                whileHover={{ y: -3, transition: { duration: 0.18 } }}
+                whileTap={{ scale: 0.97 }}
                 data-testid={`card-game-${game.id}`}
                 className="bg-card border border-border rounded-xl p-5 flex flex-col gap-3 hover:border-primary/50 transition-colors cursor-pointer group"
                 onClick={() => setLocation(`/game/${game.id}`)}
@@ -114,9 +133,9 @@ export default function Lobby() {
                 <Button size="sm" className="mt-auto w-full" data-testid={`button-play-${game.id}`}>
                   Play Now
                 </Button>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
 
         {/* Recent activity */}
@@ -135,10 +154,16 @@ export default function Lobby() {
                 No bets yet. Be the first!
               </div>
             )}
-            <div className="divide-y divide-border">
+            <motion.div
+              className="divide-y divide-border"
+              initial="hidden"
+              animate="show"
+              variants={{ show: { transition: { staggerChildren: 0.05 } } }}
+            >
               {recent?.map((item) => (
-                <div
+                <motion.div
                   key={item.id}
+                  variants={feedVariants}
                   data-testid={`row-activity-${item.id}`}
                   className="px-4 py-3 flex items-center justify-between gap-2"
                 >
@@ -152,9 +177,9 @@ export default function Lobby() {
                     </p>
                     <p className="text-xs text-muted-foreground">{item.won ? "WIN" : "LOSS"}</p>
                   </div>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           </div>
         </div>
       </div>

@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useParams, useLocation, Link } from "wouter";
 import {
   useGetGame, getGetGameQueryKey,
@@ -35,31 +36,104 @@ const NUMBER_TYPES = new Set(["number_pick","dice","jackpot","crash","keno","min
 const AUTO_TYPES = new Set(["wheel","plinko","scratch_card","video_poker","war","three_card_poker"]);
 
 // ── Slot Machine ───────────────────────────────────────────────────────────
-function SlotMachine({ config, isSpinning, result }: { config: any; isSpinning: boolean; result: string[] | null }) {
-  const items = config?.items ?? [{ label: "Cherry" }, { label: "Bar" }, { label: "Seven" }, { label: "Skull" }];
+function SlotMachine({ config, isSpinning, result, won }: {
+  config: any; isSpinning: boolean; result: string[] | null; won?: boolean;
+}) {
+  const items = useMemo(
+    () => config?.items ?? [{ label: "🍒" }, { label: "BAR" }, { label: "7" }, { label: "💀" }],
+    [config]
+  );
   const reelCount = config?.reelCount ?? 3;
-  const [display, setDisplay] = useState<string[]>(Array(reelCount).fill(items[0]?.label ?? "?"));
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const [spinDisplay, setSpinDisplay] = useState<string[]>(() => Array(reelCount).fill("?"));
+  const [stoppedValues, setStoppedValues] = useState<(string | null)[]>(() => Array(reelCount).fill(null));
 
   useEffect(() => {
-    if (isSpinning) {
-      timerRef.current = setInterval(() => {
-        setDisplay(Array(reelCount).fill(null).map(() => items[Math.floor(Math.random() * items.length)]?.label ?? "?"));
-      }, 100);
-    } else {
-      if (timerRef.current) clearInterval(timerRef.current);
-      if (result) setDisplay(result);
-    }
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+    if (isSpinning) setStoppedValues(Array(reelCount).fill(null));
+  }, [isSpinning, reelCount]);
+
+  useEffect(() => {
+    if (isSpinning || !result) return;
+    const timers = result.map((val, i) =>
+      setTimeout(() => {
+        setStoppedValues(prev => { const n = [...prev]; n[i] = val; return n; });
+      }, i * 340 + 60)
+    );
+    return () => timers.forEach(clearTimeout);
   }, [isSpinning, result]);
+
+  useEffect(() => {
+    if (!isSpinning) return;
+    const iv = setInterval(() => {
+      setSpinDisplay(Array(reelCount).fill(null).map(
+        () => items[Math.floor(Math.random() * items.length)]?.label ?? "?"
+      ));
+    }, 85);
+    return () => clearInterval(iv);
+  }, [isSpinning, reelCount, items]);
 
   return (
     <div className="flex gap-3 justify-center my-2">
-      {Array(reelCount).fill(null).map((_, i) => (
-        <div key={i} className={`w-20 h-20 bg-background border-2 rounded-lg flex items-center justify-center transition-all ${isSpinning ? "border-primary/60 shadow-[0_0_12px_hsl(142_71%_45%/0.3)]" : "border-border"}`}>
-          <span className="text-base font-black text-foreground text-center leading-none px-1">{display[i] ?? "?"}</span>
-        </div>
-      ))}
+      {Array(reelCount).fill(null).map((_, i) => {
+        const stopped = stoppedValues[i] !== null;
+        const val = stopped ? stoppedValues[i]! : spinDisplay[i] ?? "?";
+        return (
+          <motion.div
+            key={i}
+            animate={stopped ? { scale: [1, 1.18, 0.92, 1.06, 1], y: [0, -7, 3, -2, 0] } : {}}
+            transition={{ duration: 0.38, ease: "easeOut" }}
+            className={`w-20 h-20 bg-background border-2 rounded-lg flex items-center justify-center overflow-hidden relative transition-shadow ${
+              stopped && won
+                ? "border-primary shadow-[0_0_22px_hsl(142_71%_45%/0.55)]"
+                : !stopped && isSpinning
+                  ? "border-primary/50 shadow-[0_0_8px_hsl(142_71%_45%/0.2)]"
+                  : "border-border"
+            }`}
+          >
+            <motion.span
+              key={val + i}
+              initial={!stopped ? { y: 14, opacity: 0 } : false}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.07 }}
+              className="text-base font-black text-foreground text-center leading-none px-1 select-none"
+            >
+              {val}
+            </motion.span>
+          </motion.div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Win particles ───────────────────────────────────────────────────────────
+function WinParticles() {
+  const particles = useMemo(() =>
+    Array.from({ length: 14 }, (_, i) => ({
+      id: i,
+      angle: (i / 14) * 360 + (Math.random() - 0.5) * 18,
+      dist: 65 + Math.random() * 70,
+      delay: Math.random() * 0.18,
+      scale: 0.8 + Math.random() * 0.7,
+      sym: ["🪙", "⭐", "💰", "✨", "🎉"][i % 5],
+    })), []
+  );
+  return (
+    <div className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden">
+      {particles.map(p => {
+        const rad = (p.angle * Math.PI) / 180;
+        return (
+          <motion.span
+            key={p.id}
+            className="absolute text-xl select-none"
+            initial={{ x: 0, y: 0, opacity: 1, scale: 0, rotate: 0 }}
+            animate={{ x: Math.cos(rad) * p.dist, y: Math.sin(rad) * p.dist - 20, opacity: 0, scale: p.scale, rotate: p.angle }}
+            transition={{ duration: 0.85, delay: p.delay, ease: [0.22, 0.61, 0.36, 1] }}
+          >
+            {p.sym}
+          </motion.span>
+        );
+      })}
     </div>
   );
 }
@@ -121,6 +195,7 @@ export default function GamePage() {
   const [numPick, setNumPick] = useState("");
   const [result, setResult] = useState<any | null>(null);
   const [isSpinning, setIsSpinning] = useState(false);
+  const [pendingReels, setPendingReels] = useState<string[] | null>(null);
 
   if (isLoading) return (
     <div className="min-h-screen bg-background p-8 max-w-xl mx-auto"><Skeleton className="h-8 w-48 mb-4" /><Skeleton className="h-48 rounded-xl" /></div>
@@ -143,14 +218,20 @@ export default function GamePage() {
   const handlePlay = () => {
     if (!stored || !game) return;
     setResult(null);
+    setPendingReels(null);
     if (type === "slots" || type === "wheel") setIsSpinning(true);
 
     playMutation.mutate(
       { id: gameId, data: { playerId: stored.id, wager, optionId: selectedOptionId ?? undefined, pick: numPick || undefined } },
       {
         onSuccess: (res) => {
-          if (type === "slots" || type === "wheel") {
-            setTimeout(() => { setIsSpinning(false); setResult(res); }, 1200);
+          if (type === "slots") {
+            const reelCount = (game.config as any)?.reelCount ?? 3;
+            const staggerMs = (reelCount - 1) * 340 + 900;
+            setTimeout(() => { setIsSpinning(false); setPendingReels(res.reels); }, 1100);
+            setTimeout(() => { setResult(res); setPendingReels(null); }, 1100 + staggerMs);
+          } else if (type === "wheel") {
+            setTimeout(() => { setIsSpinning(false); setResult(res); }, 1600);
           } else {
             setResult(res);
           }
@@ -158,6 +239,7 @@ export default function GamePage() {
         },
         onError: (err: any) => {
           setIsSpinning(false);
+          setPendingReels(null);
           toast({ title: err?.data?.error ?? "Something went wrong", variant: "destructive" });
         },
       }
@@ -170,6 +252,19 @@ export default function GamePage() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* ── Screen flash on result ── */}
+      <AnimatePresence>
+        {result && (
+          <motion.div
+            key={`flash-${result.betId ?? result.payout}`}
+            className={`fixed inset-0 pointer-events-none z-50 ${result.won ? "bg-primary" : "bg-destructive"}`}
+            initial={{ opacity: result.won ? 0.22 : 0.18 }}
+            animate={{ opacity: 0 }}
+            transition={{ duration: 0.45, ease: "easeOut" }}
+          />
+        )}
+      </AnimatePresence>
+
       <header className="border-b border-border bg-card/50 backdrop-blur sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/lobby"><Button variant="ghost" size="sm" data-testid="link-back">← Lobby</Button></Link>
@@ -219,7 +314,7 @@ export default function GamePage() {
             {/* ── SLOTS ── */}
             {type === "slots" && (
               <>
-                <SlotMachine config={config} isSpinning={isSpinning} result={result?.reels ?? null} />
+                <SlotMachine config={config} isSpinning={isSpinning} result={pendingReels ?? result?.reels ?? null} won={!!result?.won} />
                 {config?.items && (
                   <div className="grid grid-cols-2 gap-1.5 text-xs">
                     {config.items.map((item: any) => (
@@ -235,9 +330,16 @@ export default function GamePage() {
             {/* ── WHEEL ── */}
             {type === "wheel" && (
               <div className="space-y-2">
-                <div className={`w-32 h-32 mx-auto rounded-full border-4 flex items-center justify-center font-black text-lg transition-all ${isSpinning ? "border-primary animate-spin" : "border-border"}`}>
-                  {result && !isSpinning ? <span className="text-primary text-sm text-center px-2">{result.reels?.[0]}</span> : <span className="text-muted-foreground text-sm">SPIN</span>}
-                </div>
+                <motion.div
+                  animate={isSpinning ? { rotate: [0, 360] } : { rotate: 0 }}
+                  transition={isSpinning ? { duration: 0.5, repeat: Infinity, ease: "linear" } : { duration: 0.9, ease: [0.33, 1, 0.68, 1] }}
+                  className={`w-32 h-32 mx-auto rounded-full border-4 flex items-center justify-center font-black text-lg ${isSpinning ? "border-primary shadow-[0_0_18px_hsl(142_71%_45%/0.4)]" : result?.won ? "border-primary" : "border-border"}`}
+                >
+                  {result && !isSpinning
+                    ? <span className="text-primary text-sm text-center px-2">{result.reels?.[0]}</span>
+                    : <span className="text-muted-foreground text-sm">SPIN</span>
+                  }
+                </motion.div>
                 {config?.sections && (
                   <div className="grid grid-cols-2 gap-1.5 text-xs mt-2">
                     {config.sections.map((s: any, i: number) => (
@@ -722,25 +824,63 @@ export default function GamePage() {
               )}
             </div>
 
-            <Button className="w-full h-12 text-base font-bold" onClick={handlePlay}
-              disabled={playMutation.isPending || isSpinning || !canPlay()} data-testid="button-play">
-              {isSpinning ? "Spinning..." : playMutation.isPending ? "Processing..." : "Place Bet"}
-            </Button>
+            <motion.div whileTap={canPlay() && !isSpinning && !playMutation.isPending ? { scale: 0.96 } : {}}>
+              <Button className="w-full h-12 text-base font-bold" onClick={handlePlay}
+                disabled={playMutation.isPending || isSpinning || !canPlay()} data-testid="button-play">
+                {isSpinning ? "Spinning..." : playMutation.isPending ? "Processing..." : "Place Bet"}
+              </Button>
+            </motion.div>
           </div>
         )}
 
         {/* ── Result ── */}
-        {result && !isSpinning && (
-          <div data-testid="text-result"
-            className={`rounded-xl p-5 text-center border-2 ${result.won ? "bg-primary/10 border-primary/50 win-flash" : "bg-destructive/10 border-destructive/50"}`}>
-            <div className={`text-3xl font-black mb-1 ${result.won ? "text-primary" : "text-destructive"}`}>
-              {result.won ? "WIN" : (type === "match_bet" || type === "trivia") ? "BET PLACED" : "LOSS"}
-            </div>
-            <p className="text-foreground font-medium text-sm">{result.message}</p>
-            {result.won && <p className="text-primary font-bold text-lg mt-1">+{result.payout} coins</p>}
-            <p className="text-muted-foreground text-xs mt-2">Balance: {result.newBalance.toLocaleString()} coins</p>
-          </div>
-        )}
+        <AnimatePresence mode="wait">
+          {result && !isSpinning && (
+            <motion.div
+              key={result.betId ?? result.payout}
+              data-testid="text-result"
+              initial={{ scale: 0.75, opacity: 0, y: 24 }}
+              animate={result.won
+                ? { scale: 1, opacity: 1, y: 0 }
+                : { scale: [0.75, 1.02, 1], opacity: 1, y: 0, x: [0, -8, 8, -6, 6, -3, 3, 0] }
+              }
+              exit={{ scale: 0.85, opacity: 0, y: -10 }}
+              transition={{ type: "spring", stiffness: 380, damping: 22 }}
+              className={`relative rounded-xl p-5 text-center border-2 overflow-hidden ${
+                result.won ? "bg-primary/10 border-primary/50" : "bg-destructive/10 border-destructive/50"
+              }`}
+            >
+              {result.won && <WinParticles />}
+              <motion.div
+                initial={{ scale: 0.4, opacity: 0 }}
+                animate={{ scale: [0.4, 1.35, 0.92, 1.08, 1], opacity: 1 }}
+                transition={{ duration: 0.5, times: [0, 0.45, 0.65, 0.8, 1] }}
+                className={`text-4xl font-black mb-2 ${result.won ? "text-primary" : "text-destructive"}`}
+              >
+                {result.won ? "🎉 WIN!" : (type === "match_bet" || type === "trivia") ? "✅ PLACED" : "💸 LOSS"}
+              </motion.div>
+              <p className="text-foreground font-medium text-sm">{result.message}</p>
+              {result.won && (
+                <motion.p
+                  initial={{ opacity: 0, scale: 0.8, y: 8 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ delay: 0.22, type: "spring", stiffness: 300 }}
+                  className="text-primary font-black text-2xl mt-2"
+                >
+                  +{result.payout.toLocaleString()} coins
+                </motion.p>
+              )}
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.35 }}
+                className="text-muted-foreground text-xs mt-2"
+              >
+                Balance: {result.newBalance.toLocaleString()} coins
+              </motion.p>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {!isOpen && (
           <div className="bg-card border border-border rounded-xl p-6 text-center text-muted-foreground">
