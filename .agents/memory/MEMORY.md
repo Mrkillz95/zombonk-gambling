@@ -1,1 +1,2 @@
 - [Client IP behind Replit proxy](replit-client-ip.md) — public edge overrides client XFF with real IP (leftmost); trusting leftmost XFF is spoof-safe for real traffic, localhost:80 is not.
+- [Rig visual consistency](rig-visual-consistency.md) — server must regenerate game visuals to match rigged won; slots/scratch_card/crash/plinko recompute win client-side.

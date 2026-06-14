@@ -138,6 +138,270 @@ function weightedRandom(items: { weight?: number | null }[]): number {
   return items.length - 1;
 }
 
+// ── RIG VISUAL RECONCILIATION ───────────────────────────────────────────────
+// When the rigging layer forces a win/loss, the game's natural visuals (cards,
+// reels, dice, etc.) may contradict the forced result. These helpers regenerate
+// visuals that genuinely PRODUCE the forced outcome, so the animation the player
+// sees always matches the win/loss they're told. Critical: a rigged loss must
+// never show a winning animation.
+function round2(n: number): number { return Math.round(n * 100) / 100; }
+
+function mkCard(value: number, suitIdx: number) {
+  return { face: CARD_FACES[(value - 1) % 13]!, suit: CARD_SUITS[suitIdx % 4]!, value };
+}
+function randCard(value: number) {
+  return mkCard(value, Math.floor(Math.random() * 4));
+}
+function bjHandForTotal(total: number): { face: string; suit: string; value: number }[] {
+  if (total > 21) return [randCard(10), randCard(10), randCard(10)];
+  if (total === 21) return [randCard(10), randCard(1)];
+  if (total >= 12) return [randCard(10), randCard(total - 10)];
+  if (total >= 4) return [randCard(2), randCard(total - 2)];
+  return [randCard(Math.max(2, total))];
+}
+function pokerWinHand(effMult: number) {
+  const tiers = [
+    { name: "Jacks or Better", mult: 1, cards: [mkCard(13,0),mkCard(13,1),mkCard(2,2),mkCard(7,3),mkCard(9,0)] },
+    { name: "Two Pair", mult: 2, cards: [mkCard(13,0),mkCard(13,1),mkCard(7,2),mkCard(7,3),mkCard(2,0)] },
+    { name: "Three of a Kind", mult: 3, cards: [mkCard(13,0),mkCard(13,1),mkCard(13,2),mkCard(7,3),mkCard(2,0)] },
+    { name: "Straight", mult: 4, cards: [mkCard(5,0),mkCard(6,1),mkCard(7,2),mkCard(8,3),mkCard(9,0)] },
+    { name: "Flush", mult: 6, cards: [mkCard(2,0),mkCard(5,0),mkCard(7,0),mkCard(9,0),mkCard(11,0)] },
+    { name: "Full House", mult: 9, cards: [mkCard(13,0),mkCard(13,1),mkCard(13,2),mkCard(7,3),mkCard(7,0)] },
+    { name: "Four of a Kind", mult: 25, cards: [mkCard(13,0),mkCard(13,1),mkCard(13,2),mkCard(13,3),mkCard(7,0)] },
+    { name: "Straight Flush", mult: 50, cards: [mkCard(5,0),mkCard(6,0),mkCard(7,0),mkCard(8,0),mkCard(9,0)] },
+    { name: "Royal Flush", mult: 800, cards: [mkCard(10,0),mkCard(11,0),mkCard(12,0),mkCard(13,0),mkCard(1,0)] },
+  ];
+  let best = tiers[0]!;
+  for (const t of tiers) if (Math.abs(t.mult - effMult) < Math.abs(best.mult - effMult)) best = t;
+  return best;
+}
+function threeCardWinHand(effMult: number) {
+  const tiers = [
+    { name: "Pair", mult: 2, cards: [mkCard(13,0),mkCard(13,1),mkCard(5,2)] },
+    { name: "Flush", mult: 3, cards: [mkCard(2,0),mkCard(7,0),mkCard(11,0)] },
+    { name: "Straight", mult: 6, cards: [mkCard(7,0),mkCard(8,1),mkCard(9,2)] },
+    { name: "Straight Flush", mult: 20, cards: [mkCard(5,0),mkCard(6,0),mkCard(7,0)] },
+    { name: "Three of a Kind", mult: 30, cards: [mkCard(13,0),mkCard(13,1),mkCard(13,2)] },
+    { name: "Mini Royal", mult: 40, cards: [mkCard(12,0),mkCard(13,0),mkCard(1,0)] },
+  ];
+  let best = tiers[0]!;
+  for (const t of tiers) if (Math.abs(t.mult - effMult) < Math.abs(best.mult - effMult)) best = t;
+  return best;
+}
+
+function reconcileForRig(o: {
+  type: string; won: boolean; payout: number; wager: number;
+  config: any; options: any[]; selectedOpt: any; pick: string | null | undefined;
+}): { reels: string[]; details: any; message: string } {
+  const { type, won, payout, wager, config, options, selectedOpt, pick } = o;
+  const effMult = wager > 0 ? Math.max(1.1, round2(payout / wager)) : 2;
+  const otherOpt = (selectedOpt ? options.find((x) => x.id !== selectedOpt.id) : options[0]) ?? selectedOpt;
+
+  switch (type) {
+    case "slots": {
+      const items = config.items || [
+        { label: "Cherry", emoji: "CH", weight: 5, payout: 2 }, { label: "Bar", emoji: "BR", weight: 4, payout: 3 },
+        { label: "Seven", emoji: "7", weight: 2, payout: 5 }, { label: "Skull", emoji: "SK", weight: 1, payout: 10 },
+      ];
+      const reelCount = config.reelCount || 3;
+      if (won) {
+        let chosen = items[0];
+        for (const x of items) if (Math.abs((x.payout || 2) - effMult) < Math.abs((chosen.payout || 2) - effMult)) chosen = x;
+        const spun = Array.from({ length: reelCount }, () => chosen);
+        return { reels: spun.map((s: any) => s.label), details: { reels: spun.map((s: any) => ({ label: s.label, emoji: s.emoji })) }, message: `Jackpot! All ${chosen.label}s! Won ${payout} coins!` };
+      }
+      // The client recomputes win = all reels equal, so a forced loss MUST have
+      // at least two different labels. Guard degenerate single-symbol configs by
+      // injecting a synthetic mismatch symbol.
+      const a = items[0] || { label: "Cherry", emoji: "CH" };
+      const diff = items.find((x: any) => x.label !== a.label) || { label: "Miss ❌", emoji: "X" };
+      const spun = Array.from({ length: reelCount }, (_, i) => (i === 0 ? a : diff));
+      return { reels: spun.map((s: any) => s.label), details: { reels: spun.map((s: any) => ({ label: s.label, emoji: s.emoji })) }, message: `No match. Better luck next time!` };
+    }
+    case "coin_flip": case "card_draw": {
+      const res = won ? selectedOpt : otherOpt;
+      const verb = type === "card_draw" ? "Drew " : "";
+      const details = type === "card_draw"
+        ? { drawn: res?.label, picked: selectedOpt?.label }
+        : { result: res?.label, picked: selectedOpt?.label };
+      return { reels: [res?.label ?? "?"], details, message: won ? `${verb}${res?.label}! You won ${payout} coins!` : `${verb}${res?.label}. You picked ${selectedOpt?.label}. Better luck next time!` };
+    }
+    case "roulette": case "mystery_box": case "color_pick": case "lucky_spin": {
+      const winOption = won ? selectedOpt : otherOpt;
+      const details = type === "roulette"
+        ? { result: winOption?.label, picked: selectedOpt?.label }
+        : { box: selectedOpt?.label, result: winOption?.label };
+      return { reels: [winOption?.label ?? "?"], details, message: won ? `${winOption?.label}! You won ${payout} coins!` : `Landed on ${winOption?.label}. You picked ${selectedOpt?.label}. Better luck next time!` };
+    }
+    case "number_pick": {
+      const min = config.min || 1; const max = config.max || 10;
+      const picked = parseInt(pick || "0", 10) || min;
+      let drawn = picked;
+      if (!won) { drawn = picked > min ? picked - 1 : picked + 1; if (drawn < min) drawn = min; if (drawn > max) drawn = max; if (drawn === picked) drawn = picked === max ? min : max; }
+      return { reels: [String(drawn)], details: { picked, drawn, min, max }, message: won ? `Drew ${drawn}! You picked ${picked} — correct! Won ${payout} coins!` : `Drew ${drawn}. You picked ${picked}. No win.` };
+    }
+    case "jackpot": {
+      const tickets = config.tickets || 100;
+      const picked = parseInt(pick || "0", 10) || 1;
+      let drawn = picked;
+      if (!won) { drawn = picked > 1 ? picked - 1 : 2; if (drawn > tickets) drawn = tickets; if (drawn === picked) drawn = picked === tickets ? 1 : tickets; }
+      return { reels: [String(drawn)], details: { picked, drawn, tickets, jackpot: config.jackpot || payout }, message: won ? `Winning ticket: #${drawn}! You held #${picked}. JACKPOT! Won ${payout} coins!` : `Winning ticket: #${drawn}. You held #${picked}. Better luck next time!` };
+    }
+    case "dice": {
+      const sides = config.sides || 6; const numDice = config.dice || 1;
+      const minSum = numDice; const maxSum = sides * numDice;
+      const picked = parseInt(pick || "0", 10) || minSum;
+      let target = picked;
+      if (!won) { target = picked > minSum ? minSum : maxSum; if (target === picked) target = picked === minSum ? Math.min(maxSum, minSum + 1) : minSum; }
+      const rolls = Array(numDice).fill(1); let rem = target - numDice;
+      for (let i = 0; i < numDice && rem > 0; i++) { const add = Math.min(sides - 1, rem); rolls[i] += add; rem -= add; }
+      const drawn = rolls.reduce((x: number, y: number) => x + y, 0);
+      return { reels: [String(drawn)], details: { picked, drawn, rolls, sides, numDice }, message: won ? `Rolled ${rolls.join("+")} = ${drawn}! You picked ${picked}. Won ${payout} coins!` : `Rolled ${rolls.join("+")} = ${drawn}. You picked ${picked}. No win.` };
+    }
+    case "over_under": {
+      const line = config.line || 50;
+      const isOver = (selectedOpt?.label || "").toLowerCase().includes("over");
+      const above = Math.min(100, line + 1 + Math.floor(Math.random() * Math.max(1, 100 - line)));
+      const below = Math.max(1, line - 1 - Math.floor(Math.random() * Math.max(1, line - 1)));
+      const drawn = won ? (isOver ? above : below) : (isOver ? below : above);
+      return { reels: [String(drawn)], details: { drawn, line, picked: selectedOpt?.label }, message: won ? `Drew ${drawn} (line: ${line}). ${selectedOpt?.label} is correct! Won ${payout} coins!` : `Drew ${drawn} (line: ${line}). ${selectedOpt?.label} is wrong. No win.` };
+    }
+    case "hi_lo": {
+      const shown = config.shown || 50;
+      const isHigher = (selectedOpt?.label || "").toLowerCase().includes("hi");
+      const above = Math.min(100, shown + 1 + Math.floor(Math.random() * Math.max(1, 100 - shown)));
+      const belowEq = Math.max(1, shown - Math.floor(Math.random() * Math.max(1, shown)));
+      const drawn = won ? (isHigher ? above : belowEq) : (isHigher ? belowEq : above);
+      return { reels: [String(drawn)], details: { shown, drawn, picked: selectedOpt?.label }, message: won ? `Shown: ${shown} → Drew ${drawn}. ${selectedOpt?.label} is correct! Won ${payout} coins!` : `Shown: ${shown} → Drew ${drawn}. ${selectedOpt?.label} is wrong. No win.` };
+    }
+    case "wheel": {
+      const sections = config.sections || [
+        { label: "Lose", weight: 5, payout: 0 }, { label: "2x", weight: 3, payout: 2 },
+        { label: "5x", weight: 1, payout: 5 }, { label: "10x", weight: 0.5, payout: 10 },
+      ];
+      let landed: any;
+      if (won) {
+        landed = sections.find((s: any) => (s.payout || 0) > 0) || { label: `${effMult}x`, payout: effMult };
+        for (const s of sections) if ((s.payout || 0) > 0 && Math.abs(s.payout - effMult) < Math.abs((landed.payout || 0) - effMult)) landed = s;
+      } else {
+        landed = sections.find((s: any) => (s.payout || 0) <= 0) || { label: "Lose", payout: 0 };
+      }
+      return { reels: [landed.label], details: { landed }, message: won ? `Wheel stopped on ${landed.label}! Won ${payout} coins!` : `Wheel stopped on ${landed.label}. No win this time.` };
+    }
+    case "plinko": {
+      const rows = config.rows || 8;
+      const mults: number[] = config.multipliers || [0.3, 0.5, 1, 2, 5, 2, 1, 0.5, 0.3];
+      const maxSlot = Math.min(mults.length - 1, rows);
+      // The client recomputes win = (multiplier > 1) at the landed slot, so the
+      // chosen slot's multiplier must agree with the forced result. Prefer a
+      // matching slot; if the config has none, fall back to the highest (win) or
+      // lowest (loss) multiplier so the visual is as consistent as possible.
+      let slot = 0;
+      if (won) {
+        let best = -1;
+        for (let i = 0; i <= maxSlot; i++) if ((mults[i] ?? 0) > 1) { if (best < 0 || Math.abs(mults[i]! - effMult) < Math.abs(mults[best]! - effMult)) best = i; }
+        if (best < 0) { best = 0; for (let i = 1; i <= maxSlot; i++) if ((mults[i] ?? 0) > (mults[best] ?? 0)) best = i; }
+        slot = best;
+      } else {
+        let f = -1;
+        for (let i = 0; i <= maxSlot; i++) if ((mults[i] ?? 0) <= 1) { f = i; break; }
+        if (f < 0) { f = 0; for (let i = 1; i <= maxSlot; i++) if ((mults[i] ?? 0) < (mults[f] ?? 0)) f = i; }
+        slot = f;
+      }
+      const multiplier = mults[slot] ?? 1;
+      const path = Array.from({ length: rows }, (_, i) => (i < slot ? "R" : "L"));
+      return { reels: [`${multiplier}x`], details: { path, slot, multiplier, rows }, message: won ? `Ball landed in slot ${slot + 1}! ${multiplier}x — Won ${payout} coins!` : `Ball landed in slot ${slot + 1}. ${multiplier}x — No win.` };
+    }
+    case "crash": {
+      const target = parseFloat(pick || "2") || 2;
+      let crashPoint: number;
+      if (won) crashPoint = round2(Math.max(target, effMult));
+      else { crashPoint = round2(Math.max(1, 1 + Math.random() * Math.max(0.1, target - 1) * 0.9)); if (crashPoint >= target) crashPoint = round2(Math.max(1, target - 0.1)); }
+      return { reels: [`${crashPoint}x`], details: { crashPoint, target }, message: won ? `🚀 Cashed out at ${target}x! Crashed at ${crashPoint}x. Won ${payout} coins!` : `💥 Crashed at ${crashPoint}x before your ${target}x target. No win.` };
+    }
+    case "keno": {
+      const spots = parseInt(pick || "1", 10) || 1;
+      const pool = config.pool || 80; const drawCount = config.draw || 20;
+      const playerNumbers = Array.from({ length: spots }, (_, i) => i + 1);
+      let drawn: number[]; let matches: number;
+      if (won) { drawn = Array.from({ length: drawCount }, (_, i) => i + 1); matches = spots; }
+      else { drawn = []; for (let n = pool; n > spots && drawn.length < drawCount; n--) drawn.push(n); matches = 0; }
+      const multiplier = won && wager > 0 ? round2(payout / wager) : 0;
+      return { reels: [`${matches}/${spots}`], details: { spots, playerNumbers, drawn: [...drawn].sort((x, y) => x - y), matches, multiplier }, message: won ? `${matches} of ${spots} matched! ${multiplier}x — Won ${payout} coins!` : `Only ${matches} of ${spots} matched. No win.` };
+    }
+    case "scratch_card": {
+      const symbols = config.symbols || [
+        { label: "Cherry 🍒", weight: 8, payout: 3 }, { label: "Bell 🔔", weight: 5, payout: 5 },
+        { label: "Coin 🪙", weight: 4, payout: 8 }, { label: "Diamond 💎", weight: 2, payout: 15 }, { label: "Lucky 7 ⑦", weight: 1, payout: 30 },
+      ];
+      if (won) {
+        let chosen = symbols[0];
+        for (const s of symbols) if (Math.abs((s.payout || 2) - effMult) < Math.abs((chosen.payout || 2) - effMult)) chosen = s;
+        const arr = [chosen, chosen, chosen];
+        return { reels: arr.map((s: any) => s.label), details: { symbols: arr, allMatch: true, twoMatch: false }, message: `Three ${chosen.label}! ${chosen.payout}x — Won ${payout} coins!` };
+      }
+      // The client recomputes allMatch/twoMatch from the symbols, so a forced
+      // loss MUST have three DISTINCT labels (no two equal). Build a distinct
+      // pool, padding with synthetic blanks if the config has fewer than 3.
+      const distinct: any[] = [];
+      for (const s of symbols) if (!distinct.find((d) => d.label === s.label)) distinct.push(s);
+      const fillers = [
+        { label: "Miss ❌", weight: 1, payout: 0 },
+        { label: "Dud 🚫", weight: 1, payout: 0 },
+        { label: "Blank ⬜", weight: 1, payout: 0 },
+      ].filter((f) => !distinct.find((d) => d.label === f.label));
+      const pool = [...distinct, ...fillers];
+      const arr = [pool[0], pool[1], pool[2]];
+      return { reels: arr.map((s: any) => s.label), details: { symbols: arr, allMatch: false, twoMatch: false }, message: `No match: ${arr[0].label}, ${arr[1].label}, ${arr[2].label}. Better luck!` };
+    }
+    case "mines": {
+      const mineCount = parseInt(pick || "3", 10) || 3;
+      const gridSize = 25;
+      const mineMult = won && wager > 0 ? round2(payout / wager) : round2((gridSize / (gridSize - mineCount)) * 0.95);
+      const minePositions = new Set<number>(); let seed = 1;
+      while (minePositions.size < Math.min(mineCount, gridSize - 1)) { minePositions.add((seed * 7) % gridSize); seed++; }
+      const safeTiles = Array.from({ length: gridSize }, (_, i) => i).filter((i) => !minePositions.has(i));
+      const tileIndex = won ? safeTiles[0]! : [...minePositions][0]!;
+      const grid = Array.from({ length: gridSize }, (_, i) => (minePositions.has(i) ? (i === tileIndex ? "picked_mine" : "mine") : (i === tileIndex ? "picked_safe" : "safe")));
+      return { reels: [won ? "SAFE 💎" : "MINE 💣"], details: { mineCount, tileIndex, minePositions: [...minePositions], grid, isSafe: won, multiplier: mineMult }, message: won ? `Safe! ${mineCount} mines on the board. ${mineMult}x — Won ${payout} coins!` : `💥 Boom! Hit a mine. ${mineCount} mines. No win.` };
+    }
+    case "blackjack": {
+      const playerCards = won ? bjHandForTotal(20) : bjHandForTotal(18);
+      const dealerCards = won ? bjHandForTotal(18) : bjHandForTotal(20);
+      const playerTotal = bjHandValue(playerCards); const dealerTotal = bjHandValue(dealerCards);
+      return { reels: playerCards.map((c) => `${c.face}${c.suit}`), details: { playerCards, dealerCards, playerTotal, dealerTotal, isHit: false }, message: won ? `${playerTotal} beats dealer's ${dealerTotal}! Won ${payout} coins!` : `Dealer's ${dealerTotal} beats your ${playerTotal}. No win.` };
+    }
+    case "war": {
+      const pc = won ? randCard(13) : randCard(2);
+      const dc = won ? randCard(2) : randCard(13);
+      return { reels: [`${pc.face}${pc.suit}`, "vs", `${dc.face}${dc.suit}`], details: { playerCard: pc, dealerCard: dc, war: false }, message: won ? `Your ${pc.face}${pc.suit} beats ${dc.face}${dc.suit}! Won ${payout} coins!` : `Dealer's ${dc.face}${dc.suit} beats your ${pc.face}${pc.suit}. No win.` };
+    }
+    case "baccarat": {
+      const betLabel = (selectedOpt?.label || "").toLowerCase();
+      const betType = betLabel.includes("bank") ? "banker" : betLabel.includes("tie") ? "tie" : "player";
+      const outcome = won ? betType : (betType === "player" ? "banker" : "player");
+      const mkScore = (s: number) => [mkCard(s === 0 ? 10 : s, Math.floor(Math.random() * 4)), mkCard(13, Math.floor(Math.random() * 4))];
+      let pScore: number; let bScore: number;
+      if (outcome === "tie") { pScore = 7; bScore = 7; } else if (outcome === "player") { pScore = 8; bScore = 5; } else { pScore = 5; bScore = 8; }
+      const playerCards = mkScore(pScore); const bankerCards = mkScore(bScore);
+      const winner = outcome.charAt(0).toUpperCase() + outcome.slice(1);
+      return { reels: [`P:${pScore}`, `B:${bScore}`], details: { playerCards, bankerCards, playerScore: pScore, bankerScore: bScore, outcome, betType }, message: won ? `${winner} wins (P:${pScore} B:${bScore})! Won ${payout} coins!` : `${winner} wins (P:${pScore} B:${bScore}). You bet on ${betType}. No win.` };
+    }
+    case "video_poker": {
+      if (won) { const h = pokerWinHand(effMult); return { reels: [h.name], details: { cards: h.cards, handName: h.name, multiplier: h.mult }, message: `${h.name}! Won ${payout} coins!` }; }
+      const cards = [mkCard(2,0), mkCard(5,1), mkCard(9,2), mkCard(11,3), mkCard(13,0)];
+      return { reels: ["No Hand"], details: { cards, handName: "No Hand", multiplier: 0 }, message: `No Hand. No winning hand this time.` };
+    }
+    case "three_card_poker": {
+      if (won) { const h = threeCardWinHand(effMult); return { reels: [h.name], details: { cards: h.cards, handName: h.name, multiplier: h.mult }, message: `${h.name}! Won ${payout} coins!` }; }
+      const cards = [mkCard(2,0), mkCard(7,1), mkCard(11,2)];
+      return { reels: ["High Card"], details: { cards, handName: "High Card", multiplier: 0 }, message: `High Card only. No winning hand.` };
+    }
+    default:
+      return { reels: [won ? "WIN" : "LOSE"], details: {}, message: won ? `Won ${payout} coins!` : `No win.` };
+  }
+}
+
 router.post("/games/:id/play", async (req, res): Promise<void> => {
   const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const idParam = PlayGameParams.safeParse({ id: parseInt(rawId, 10) });
@@ -663,6 +927,7 @@ router.post("/games/:id/play", async (req, res): Promise<void> => {
   // ── RIGGING LAYER ─────────────────────────────────────────────────────────
   {
     let rigOverrode = false;
+    let riggedMessage: string | null = null;
     const selectedOpt = options.find(o => o.id === optionId);
 
     // 1. Per-option trueWinPct: override win probability based on the chosen option
@@ -724,10 +989,10 @@ router.post("/games/:id/play", async (req, res): Promise<void> => {
         // forceOutcome takes absolute priority
         if (gRig.forceOutcome === "lose") {
           won = false; payout = 0; rigOverrode = true;
-          if (gRig.message) message = gRig.message;
+          if (gRig.message) riggedMessage = gRig.message;
         } else if (gRig.forceOutcome === "win") {
           won = true; payout = Math.floor(wager * (gRig.payoutMult || 2)); rigOverrode = true;
-          if (gRig.message) message = gRig.message;
+          if (gRig.message) riggedMessage = gRig.message;
         } else if (gRig.winRatio != null) {
           // Keep the player's actual win rate within 2% of the chosen ratio across
           // ALL games. Decide THIS bet's outcome by looking at the resulting rate
@@ -764,7 +1029,7 @@ router.post("/games/:id/play", async (req, res): Promise<void> => {
           won = shouldWin;
           payout = won ? Math.floor(wager * (gRig.payoutMult || 2)) : 0;
           rigOverrode = true;
-          if (gRig.message) message = gRig.message;
+          if (gRig.message) riggedMessage = gRig.message;
         }
       }
     }
@@ -782,13 +1047,28 @@ router.post("/games/:id/play", async (req, res): Promise<void> => {
     const maxPay = Number(config.maxPayout) || 0;
     if (maxPay > 0 && payout > maxPay) payout = maxPay;
 
-    // 7. Custom messages (apply always if set, or use generic fallback when rigging kicked in)
+    // 6b. Reconcile visuals to the forced outcome. The game logic above built
+    // reels/details for its NATURAL result, which may contradict the rigged
+    // win/loss. Regenerate them so the animation the player sees matches the
+    // reported result (a rigged loss must never show a winning animation).
+    // match_bet/trivia always render "PLACED" (resolved later by a mod), so they
+    // have no win/loss animation to contradict.
+    if (rigOverrode && game.type !== "match_bet" && game.type !== "trivia") {
+      const rec = reconcileForRig({
+        type: game.type, won, payout, wager, config, options, selectedOpt, pick,
+      });
+      reels = rec.reels;
+      details = rec.details;
+      message = rec.message;
+    }
+
+    // 7. Custom messages override the text (visuals already match the outcome).
     if (won && config.winMessage) {
       message = String(config.winMessage).replace("{payout}", String(payout)).replace("{wager}", String(wager));
     } else if (!won && config.loseMessage) {
       message = String(config.loseMessage).replace("{payout}", String(payout)).replace("{wager}", String(wager));
-    } else if (rigOverrode) {
-      message = won ? `Lucky! Won ${payout} coins!` : "Better luck next time!";
+    } else if (riggedMessage) {
+      message = riggedMessage;
     }
   }
 
