@@ -306,7 +306,7 @@ router.patch("/mod/players/:id/rig", async (req, res): Promise<void> => {
   }
 
   const rig = parsed.data;
-  const hasRig = rig.forceOutcome != null || rig.payoutMult != null || rig.message != null;
+  const hasRig = rig.forceOutcome != null || rig.winRatio != null || rig.payoutMult != null || rig.applyAfterBets != null || rig.message != null;
 
   const [player] = await db
     .update(playersTable)

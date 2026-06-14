@@ -106,6 +106,146 @@ function SlotMachine({ config, isSpinning, result, won }: {
   );
 }
 
+// ── Plinko Board ─────────────────────────────────────────────────────────────
+function PlinkoBoard({ multipliers, path, slot, isDropping, won, onComplete }: {
+  multipliers: number[]; path: string[]; slot: number;
+  isDropping: boolean; won: boolean; onComplete?: () => void;
+}) {
+  const numRows = path.length;
+  const numSlots = multipliers.length;
+  const BOARD_W = 300;
+  const SLOT_H = 34;
+  const PEG_H = 190;
+  const colW = BOARD_W / numSlots;
+  const rowH = PEG_H / (numRows + 1);
+  const BALL_R = 7;
+
+  // Compute ball position keyframes from path
+  const startX = (numSlots / 2) * colW - BALL_R;
+  const xFrames: number[] = [startX];
+  const yFrames: number[] = [-BALL_R];
+  let cx = startX;
+  for (const move of path) {
+    cx += move === "R" ? colW / 2 : -colW / 2;
+    cx = Math.max(BALL_R, Math.min(BOARD_W - BALL_R - colW / 2, cx));
+    xFrames.push(cx);
+    yFrames.push((xFrames.length - 1) * rowH);
+  }
+  xFrames.push(slot * colW + colW / 2 - BALL_R);
+  yFrames.push(PEG_H - BALL_R);
+  const times = xFrames.map((_, i) => i / Math.max(1, xFrames.length - 1));
+  const duration = Math.max(numRows * 0.24 + 0.4, 1.2);
+
+  // Peg dots
+  const pegs: { x: number; y: number }[] = [];
+  for (let row = 0; row < numRows; row++) {
+    const n = row + 2;
+    const offsetX = (numSlots - n) / 2;
+    for (let p = 0; p < n; p++) {
+      pegs.push({ x: (offsetX + p) * colW + colW / 2, y: (row + 0.5) * rowH });
+    }
+  }
+
+  return (
+    <div className="flex justify-center">
+      <div className="relative" style={{ width: BOARD_W, height: PEG_H + SLOT_H }}>
+        {pegs.map((peg, i) => (
+          <div key={i} className="absolute rounded-full bg-zinc-500/60"
+            style={{ width: 6, height: 6, left: peg.x - 3, top: peg.y - 3 }} />
+        ))}
+        {multipliers.map((m, i) => {
+          const isLanded = !isDropping && i === slot && path.length > 0;
+          return (
+            <div key={i}
+              className={`absolute flex items-center justify-center text-xs font-bold rounded border transition-all ${
+                isLanded && won ? "bg-primary border-primary text-primary-foreground" :
+                isLanded ? "bg-destructive/20 border-destructive text-destructive" :
+                m > 1 ? "bg-primary/10 border-primary/30 text-primary" :
+                "bg-background border-border text-muted-foreground"
+              }`}
+              style={{ left: i * colW + 1, top: PEG_H, width: colW - 2, height: SLOT_H - 2 }}
+            >
+              {m}x
+            </div>
+          );
+        })}
+        {isDropping && path.length > 0 && (
+          <motion.div
+            className="absolute rounded-full bg-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.7)] z-10"
+            style={{ width: BALL_R * 2, height: BALL_R * 2, left: 0, top: 0 }}
+            initial={{ x: startX, y: -BALL_R }}
+            animate={{ x: xFrames, y: yFrames }}
+            transition={{ duration, times, ease: "linear" }}
+            onAnimationComplete={onComplete}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Crash Meter ───────────────────────────────────────────────────────────────
+function CrashMeter({ crashPoint, targetMult, won, onComplete }: {
+  crashPoint: number; targetMult: number; won: boolean; onComplete: () => void;
+}) {
+  const [display, setDisplay] = useState(1.0);
+  const duration = Math.min(4.0, 1.0 + crashPoint * 0.45);
+
+  useEffect(() => {
+    const start = performance.now();
+    let id: number;
+    const tick = (now: number) => {
+      const t = Math.min((now - start) / 1000 / duration, 1);
+      const eased = t < 1 ? 1 - Math.pow(1 - t, 2) : 1;
+      setDisplay(1 + (crashPoint - 1) * eased);
+      if (t < 1) { id = requestAnimationFrame(tick); }
+      else { setTimeout(onComplete, 700); }
+    };
+    id = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  const progress = Math.min((display - 1) / Math.max(crashPoint - 1, 0.01), 1);
+  const peaked = display >= crashPoint * 0.99;
+  const crashedBefore = crashPoint < targetMult;
+
+  return (
+    <div className="space-y-3 py-2">
+      <div className="text-center space-y-1">
+        <motion.p
+          className={`text-5xl font-black tabular-nums transition-colors ${
+            peaked ? (won ? "text-primary" : "text-destructive") : "text-yellow-400"
+          }`}
+          animate={peaked ? { scale: [1, 1.18, 1] } : {}}
+          transition={{ type: "spring", stiffness: 300, damping: 15 }}
+        >
+          {display.toFixed(2)}x
+        </motion.p>
+        <p className="text-xs text-muted-foreground">
+          Your target: <span className="font-bold text-foreground">{targetMult}x</span>
+        </p>
+      </div>
+      <div className="h-3 bg-muted rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all ${
+            peaked && crashedBefore ? "bg-destructive" : "bg-yellow-400"
+          }`}
+          style={{ width: `${progress * 100}%` }}
+        />
+      </div>
+      {peaked && (
+        <motion.p
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`text-xs text-center font-bold ${won ? "text-primary" : "text-destructive"}`}
+        >
+          {won ? `✅ Survived to ${crashPoint}x!` : `💥 Crashed at ${crashPoint}x`}
+        </motion.p>
+      )}
+    </div>
+  );
+}
+
 // ── Win particles ───────────────────────────────────────────────────────────
 function WinParticles() {
   const particles = useMemo(() =>
@@ -196,6 +336,9 @@ export default function GamePage() {
   const [result, setResult] = useState<any | null>(null);
   const [isSpinning, setIsSpinning] = useState(false);
   const [pendingReels, setPendingReels] = useState<string[] | null>(null);
+  const [pendingResult, setPendingResult] = useState<any | null>(null);
+  const [isPlinkoDropping, setIsPlinkoDropping] = useState(false);
+  const [isCrashAnimating, setIsCrashAnimating] = useState(false);
 
   if (isLoading) return (
     <div className="min-h-screen bg-background p-8 max-w-xl mx-auto"><Skeleton className="h-8 w-48 mb-4" /><Skeleton className="h-48 rounded-xl" /></div>
@@ -219,6 +362,9 @@ export default function GamePage() {
     if (!stored || !game) return;
     setResult(null);
     setPendingReels(null);
+    setPendingResult(null);
+    setIsPlinkoDropping(false);
+    setIsCrashAnimating(false);
     if (type === "slots" || type === "wheel") setIsSpinning(true);
 
     playMutation.mutate(
@@ -232,6 +378,12 @@ export default function GamePage() {
             setTimeout(() => { setResult(res); setPendingReels(null); }, 1100 + staggerMs);
           } else if (type === "wheel") {
             setTimeout(() => { setIsSpinning(false); setResult(res); }, 1600);
+          } else if (type === "plinko") {
+            setPendingResult(res);
+            setIsPlinkoDropping(true);
+          } else if (type === "crash") {
+            setPendingResult(res);
+            setIsCrashAnimating(true);
           } else {
             setResult(res);
           }
@@ -240,6 +392,8 @@ export default function GamePage() {
         onError: (err: any) => {
           setIsSpinning(false);
           setPendingReels(null);
+          setIsPlinkoDropping(false);
+          setIsCrashAnimating(false);
           toast({ title: err?.data?.error ?? "Something went wrong", variant: "destructive" });
         },
       }
@@ -504,21 +658,21 @@ export default function GamePage() {
             {/* ── PLINKO ── */}
             {type === "plinko" && (
               <div className="space-y-3">
-                <p className="text-sm text-muted-foreground text-center">Drop the ball through the pegs!</p>
-                <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${(config?.multipliers ?? [0.3,0.5,1,2,5,2,1,0.5,0.3]).length}, 1fr)` }}>
-                  {(config?.multipliers ?? [0.3,0.5,1,2,5,2,1,0.5,0.3]).map((m: number, i: number) => {
-                    const d = result?.details as any;
-                    const isLanded = d && d.slot === i;
-                    return (
-                      <div key={i} className={`h-10 rounded flex items-center justify-center text-xs font-bold border transition-all ${
-                        isLanded && result?.won ? "bg-primary border-primary text-primary-foreground" :
-                        isLanded ? "bg-destructive/20 border-destructive text-destructive" :
-                        m > 1 ? "bg-primary/10 border-primary/30 text-primary" :
-                        "bg-background border-border text-muted-foreground"
-                      }`}>{m}x</div>
-                    );
-                  })}
-                </div>
+                <p className="text-sm text-muted-foreground text-center">
+                  {isPlinkoDropping ? "Ball dropping…" : "Drop the ball through the pegs!"}
+                </p>
+                <PlinkoBoard
+                  multipliers={config?.multipliers ?? [0.3,0.5,1,2,5,2,1,0.5,0.3]}
+                  path={(isPlinkoDropping ? pendingResult : result)?.details?.path ?? []}
+                  slot={(isPlinkoDropping ? pendingResult : result)?.details?.slot ?? -1}
+                  isDropping={isPlinkoDropping}
+                  won={!!(isPlinkoDropping ? pendingResult : result)?.won}
+                  onComplete={() => {
+                    setIsPlinkoDropping(false);
+                    setResult(pendingResult);
+                    setPendingResult(null);
+                  }}
+                />
                 {result?.details && (result.details as any).path && (
                   <p className="text-xs text-center text-muted-foreground font-mono">
                     Path: {(result.details as any).path.join("")}
@@ -554,7 +708,19 @@ export default function GamePage() {
             {/* ── CRASH ── */}
             {type === "crash" && (
               <div className="space-y-3">
-                {result?.details && (
+                {isCrashAnimating && pendingResult?.details && (
+                  <CrashMeter
+                    crashPoint={(pendingResult.details as any).crashPoint}
+                    targetMult={(pendingResult.details as any).target}
+                    won={!!pendingResult.won}
+                    onComplete={() => {
+                      setIsCrashAnimating(false);
+                      setResult(pendingResult);
+                      setPendingResult(null);
+                    }}
+                  />
+                )}
+                {!isCrashAnimating && result?.details && (
                   <div className="flex gap-6 justify-center py-2">
                     <div className="text-center">
                       <p className="text-xs text-muted-foreground">Crashed at</p>
@@ -824,10 +990,10 @@ export default function GamePage() {
               )}
             </div>
 
-            <motion.div whileTap={canPlay() && !isSpinning && !playMutation.isPending ? { scale: 0.96 } : {}}>
+            <motion.div whileTap={canPlay() && !isSpinning && !isPlinkoDropping && !isCrashAnimating && !playMutation.isPending ? { scale: 0.96 } : {}}>
               <Button className="w-full h-12 text-base font-bold" onClick={handlePlay}
-                disabled={playMutation.isPending || isSpinning || !canPlay()} data-testid="button-play">
-                {isSpinning ? "Spinning..." : playMutation.isPending ? "Processing..." : "Place Bet"}
+                disabled={playMutation.isPending || isSpinning || isPlinkoDropping || isCrashAnimating || !canPlay()} data-testid="button-play">
+                {isSpinning ? "Spinning…" : isPlinkoDropping ? "Ball dropping…" : isCrashAnimating ? "Counting…" : playMutation.isPending ? "Processing…" : "Place Bet"}
               </Button>
             </motion.div>
           </div>
