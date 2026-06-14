@@ -197,6 +197,88 @@ paths:
         "400":
           description: Bad request
 
+  /games/{id}/rounds:
+    post:
+      operationId: startRound
+      tags: [games]
+      summary: Start a stateful interactive round (blackjack, mines, video_poker, hi_lo, crash)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoundStartInput"
+      responses:
+        "200":
+          description: Round state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoundState"
+        "400":
+          description: Bad request
+
+  /rounds/{roundId}:
+    get:
+      operationId: getRound
+      tags: [games]
+      summary: Fetch current round state (resync)
+      parameters:
+        - name: roundId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: playerId
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Round state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoundState"
+        "404":
+          description: Not found
+
+  /rounds/{roundId}/action:
+    post:
+      operationId: roundAction
+      tags: [games]
+      summary: Take an action in an active round (hit/stand/double/reveal/cashout/draw/higher/lower)
+      parameters:
+        - name: roundId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoundActionInput"
+      responses:
+        "200":
+          description: Updated round state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoundState"
+        "400":
+          description: Bad request
+        "404":
+          description: Not found
+
   /mod/auth:
     post:
       operationId: modAuth
@@ -1099,6 +1181,69 @@ components:
           type: string
         betId:
           type: integer
+
+    RoundStartInput:
+      type: object
+      required: [playerId, wager]
+      properties:
+        playerId:
+          type: integer
+        wager:
+          type: integer
+        mineCount:
+          type: ["integer", "null"]
+        optionId:
+          type: ["integer", "null"]
+        pick:
+          type: ["string", "null"]
+
+    RoundActionInput:
+      type: object
+      required: [playerId, action]
+      properties:
+        playerId:
+          type: integer
+        action:
+          type: string
+          enum: [hit, stand, double, reveal, cashout, draw, higher, lower]
+        tile:
+          type: ["integer", "null"]
+        hold:
+          type: ["array", "null"]
+          items:
+            type: integer
+
+    RoundState:
+      type: object
+      required: [roundId, gameId, type, status, wager, state, actions, payout, newBalance, message]
+      properties:
+        roundId:
+          type: integer
+        gameId:
+          type: integer
+        type:
+          type: string
+        status:
+          type: string
+          enum: [active, resolved]
+        wager:
+          type: integer
+        state:
+          type: object
+        actions:
+          type: array
+          items:
+            type: string
+        won:
+          type: ["boolean", "null"]
+        payout:
+          type: integer
+        newBalance:
+          type: integer
+        message:
+          type: string
+        betId:
+          type: ["integer", "null"]
 
     Bet:
       type: object

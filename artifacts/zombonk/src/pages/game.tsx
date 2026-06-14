@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useParams, useLocation, Link } from "wouter";
 import {
@@ -14,6 +14,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getStoredPlayer } from "@/lib/player-store";
 import { secureRandom } from "@/lib/secure-random";
 import { useToast } from "@/hooks/use-toast";
+import { RoundGame } from "./round-game";
+
+// Games that run as stateful interactive rounds (real decisions) instead of one-shot bets.
+const ROUND_GAME_TYPES = new Set(["blackjack", "mines", "video_poker", "hi_lo", "crash"]);
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -36,6 +40,43 @@ const OPTION_TYPES = new Set(["coin_flip","match_bet","mystery_box","roulette","
 const NUMBER_TYPES = new Set(["number_pick","dice","jackpot","crash","keno","mines"]);
 // Types with no player choice (just click play)
 const AUTO_TYPES = new Set(["wheel","plinko","scratch_card","video_poker","war","three_card_poker"]);
+// One-shot games whose cards/dice should be revealed one-by-one before the result banner.
+const REVEAL_TYPES = new Set(["war","baccarat","three_card_poker","dragon_tiger","sic_bo"]);
+const REVEAL_STEP_MS = 220;
+
+// Staggered flip-in wrapper used for sequenced card/dice reveals.
+function RevealItem({ index, children }: { index: number; children: ReactNode }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, rotateY: 90, y: 12, scale: 0.85 }}
+      animate={{ opacity: 1, rotateY: 0, y: 0, scale: 1 }}
+      transition={{ delay: index * (REVEAL_STEP_MS / 1000), duration: 0.38, ease: [0.22, 0.61, 0.36, 1] }}
+      style={{ transformStyle: "preserve-3d" }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// How many items reveal in the longest sequence for a reveal-type game. Card groups
+// (e.g. player vs banker) animate in parallel, so duration tracks the largest group.
+function revealItemCount(type: string, details: any): number {
+  if (!details) return 1;
+  switch (type) {
+    case "war":
+      return details.war ? 4 : 2;
+    case "baccarat":
+      return Math.max(details.playerCards?.length ?? 2, details.bankerCards?.length ?? 2);
+    case "three_card_poker":
+      return details.cards?.length ?? 3;
+    case "dragon_tiger":
+      return 2;
+    case "sic_bo":
+      return details.dice?.length ?? 3;
+    default:
+      return 3;
+  }
+}
 
 // ── Slot Machine ───────────────────────────────────────────────────────────
 function SlotMachine({ config, isSpinning, result, won }: {
@@ -342,6 +383,9 @@ export default function GamePage() {
   const [pendingResult, setPendingResult] = useState<any | null>(null);
   const [isPlinkoDropping, setIsPlinkoDropping] = useState(false);
   const [isCrashAnimating, setIsCrashAnimating] = useState(false);
+  // Gates the result flash + banner so card/dice reveals finish first. Always true
+  // for non-reveal games, so their existing timing is unaffected.
+  const [bannerReady, setBannerReady] = useState(true);
 
   if (isLoading) return (
     <div className="min-h-screen bg-background p-8 max-w-xl mx-auto"><Skeleton className="h-8 w-48 mb-4" /><Skeleton className="h-48 rounded-xl" /></div>
@@ -353,6 +397,7 @@ export default function GamePage() {
   const config = game.config as any;
   const isOpen = game.status === "open";
   const type = game.type as string;
+  const isRound = ROUND_GAME_TYPES.has(type);
 
   const canPlay = () => {
     if (!wager || wager <= 0 || wager > (player?.balance ?? 0)) return false;
@@ -368,6 +413,7 @@ export default function GamePage() {
     setPendingResult(null);
     setIsPlinkoDropping(false);
     setIsCrashAnimating(false);
+    setBannerReady(!REVEAL_TYPES.has(type));
     if (type === "slots" || type === "wheel") setIsSpinning(true);
 
     playMutation.mutate(
@@ -387,6 +433,10 @@ export default function GamePage() {
           } else if (type === "crash") {
             setPendingResult(res);
             setIsCrashAnimating(true);
+          } else if (REVEAL_TYPES.has(type)) {
+            setResult(res);
+            const items = revealItemCount(type, (res as any).details);
+            setTimeout(() => setBannerReady(true), items * REVEAL_STEP_MS + 360);
           } else {
             setResult(res);
           }
@@ -415,7 +465,7 @@ export default function GamePage() {
     <div className="min-h-screen bg-background">
       {/* ── Screen flash on result ── */}
       <AnimatePresence>
-        {result && (
+        {result && bannerReady && (
           <motion.div
             key={`flash-${result.betId ?? result.payout}`}
             className={`fixed inset-0 pointer-events-none z-50 ${result.won ? "bg-primary" : isPartialReturn ? "bg-amber-400" : "bg-destructive"}`}
@@ -469,7 +519,13 @@ export default function GamePage() {
           </div>
         </div>
 
-        {isOpen && (
+        {isOpen && isRound && (
+          <div className="bg-card border border-border rounded-xl p-5">
+            <RoundGame game={game} playerId={stored?.id ?? 0} balance={player?.balance ?? 0} />
+          </div>
+        )}
+
+        {isOpen && !isRound && (
           <div className="bg-card border border-border rounded-xl p-5 space-y-4">
 
             {/* ── SLOTS ── */}
@@ -875,25 +931,25 @@ export default function GamePage() {
                   <div className="flex gap-4 items-center justify-center py-2">
                     <div className="text-center space-y-1">
                       <p className="text-xs text-muted-foreground">You</p>
-                      <PlayingCard face={(result.details as any).playerCard.face} suit={(result.details as any).playerCard.suit} />
+                      <RevealItem index={0}><PlayingCard face={(result.details as any).playerCard.face} suit={(result.details as any).playerCard.suit} /></RevealItem>
                     </div>
                     {(result.details as any).war && <span className="text-yellow-400 font-black text-sm">WAR!</span>}
                     <span className="text-muted-foreground font-bold text-sm">vs</span>
                     <div className="text-center space-y-1">
                       <p className="text-xs text-muted-foreground">Dealer</p>
-                      <PlayingCard face={(result.details as any).dealerCard.face} suit={(result.details as any).dealerCard.suit} />
+                      <RevealItem index={1}><PlayingCard face={(result.details as any).dealerCard.face} suit={(result.details as any).dealerCard.suit} /></RevealItem>
                     </div>
                     {(result.details as any).war && (result.details as any).warPlayer && (
                       <>
                         <span className="text-muted-foreground text-xs">→</span>
                         <div className="text-center space-y-1">
                           <p className="text-xs text-muted-foreground">You (war)</p>
-                          <PlayingCard face={(result.details as any).warPlayer.face} suit={(result.details as any).warPlayer.suit} size="sm" />
+                          <RevealItem index={2}><PlayingCard face={(result.details as any).warPlayer.face} suit={(result.details as any).warPlayer.suit} size="sm" /></RevealItem>
                         </div>
                         <span className="text-muted-foreground text-xs">vs</span>
                         <div className="text-center space-y-1">
                           <p className="text-xs text-muted-foreground">Dealer (war)</p>
-                          <PlayingCard face={(result.details as any).warDealer.face} suit={(result.details as any).warDealer.suit} size="sm" />
+                          <RevealItem index={3}><PlayingCard face={(result.details as any).warDealer.face} suit={(result.details as any).warDealer.suit} size="sm" /></RevealItem>
                         </div>
                       </>
                     )}
@@ -922,13 +978,13 @@ export default function GamePage() {
                     <div>
                       <p className="text-xs text-muted-foreground mb-1.5">Player — <span className={`font-bold ${(result.details as any).outcome==="player"?"text-primary":"text-foreground"}`}>{(result.details as any).playerScore}</span></p>
                       <div className="flex gap-1.5 flex-wrap">
-                        {(result.details as any).playerCards.map((c: any, i: number) => <PlayingCard key={i} face={c.face} suit={c.suit} size="sm" />)}
+                        {(result.details as any).playerCards.map((c: any, i: number) => <RevealItem key={i} index={i}><PlayingCard face={c.face} suit={c.suit} size="sm" /></RevealItem>)}
                       </div>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground mb-1.5">Banker — <span className={`font-bold ${(result.details as any).outcome==="banker"?"text-primary":"text-foreground"}`}>{(result.details as any).bankerScore}</span></p>
                       <div className="flex gap-1.5 flex-wrap">
-                        {(result.details as any).bankerCards.map((c: any, i: number) => <PlayingCard key={i} face={c.face} suit={c.suit} size="sm" />)}
+                        {(result.details as any).bankerCards.map((c: any, i: number) => <RevealItem key={i} index={i}><PlayingCard face={c.face} suit={c.suit} size="sm" /></RevealItem>)}
                       </div>
                     </div>
                   </div>
@@ -959,7 +1015,7 @@ export default function GamePage() {
                 {result?.details ? (
                   <div className="space-y-2">
                     <div className="flex gap-3 justify-center">
-                      {(result.details as any).cards.map((c: any, i: number) => <PlayingCard key={i} face={c.face} suit={c.suit} />)}
+                      {(result.details as any).cards.map((c: any, i: number) => <RevealItem key={i} index={i}><PlayingCard face={c.face} suit={c.suit} /></RevealItem>)}
                     </div>
                     <p className="text-center text-sm font-bold text-primary">{(result.details as any).handName}</p>
                   </div>
@@ -988,12 +1044,12 @@ export default function GamePage() {
                   <div className="flex gap-6 items-center justify-center py-2">
                     <div className="text-center space-y-1">
                       <p className={`text-xs font-bold ${(result.details as any).outcome==="dragon"?"text-red-400":"text-muted-foreground"}`}>🐉 Dragon</p>
-                      <PlayingCard face={(result.details as any).dragonCard.face} suit={(result.details as any).dragonCard.suit} />
+                      <RevealItem index={0}><PlayingCard face={(result.details as any).dragonCard.face} suit={(result.details as any).dragonCard.suit} /></RevealItem>
                     </div>
                     <span className="text-muted-foreground font-bold text-sm">vs</span>
                     <div className="text-center space-y-1">
                       <p className={`text-xs font-bold ${(result.details as any).outcome==="tiger"?"text-amber-400":"text-muted-foreground"}`}>🐯 Tiger</p>
-                      <PlayingCard face={(result.details as any).tigerCard.face} suit={(result.details as any).tigerCard.suit} />
+                      <RevealItem index={1}><PlayingCard face={(result.details as any).tigerCard.face} suit={(result.details as any).tigerCard.suit} /></RevealItem>
                     </div>
                   </div>
                 ) : (
@@ -1022,7 +1078,7 @@ export default function GamePage() {
                   <div className="space-y-2">
                     <div className="flex gap-3 justify-center py-1">
                       {(result.details as any).dice.map((d: number, i: number) => (
-                        <div key={i} className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center text-xl font-black ${result.won ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-foreground"}`}>{d}</div>
+                        <RevealItem key={i} index={i}><div className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center text-xl font-black ${result.won ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-foreground"}`}>{d}</div></RevealItem>
                       ))}
                     </div>
                     <p className="text-center text-sm font-bold text-foreground">Sum: {(result.details as any).sum}{(result.details as any).isTriple ? " — Triple!" : ""}</p>
@@ -1067,7 +1123,7 @@ export default function GamePage() {
 
         {/* ── Result ── */}
         <AnimatePresence mode="wait">
-          {result && !isSpinning && (
+          {result && !isSpinning && bannerReady && (
             <motion.div
               key={result.betId ?? result.payout}
               data-testid="text-result"

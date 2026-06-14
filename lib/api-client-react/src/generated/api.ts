@@ -28,6 +28,7 @@ import type {
   Game,
   GameInput,
   GameUpdate,
+  GetRoundParams,
   GlobalRigInput,
   HealthStatus,
   ListGamesParams,
@@ -49,6 +50,9 @@ import type {
   RedemptionSubmitBody,
   RegisterPlayerInput,
   ResolveInput,
+  RoundActionInput,
+  RoundStartInput,
+  RoundState,
   SeedResult,
   SetAllBalance,
   SetAllBalanceResult,
@@ -749,6 +753,239 @@ export const usePlayGame = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getPlayGameMutationOptions(options));
+    }
+
+export const getStartRoundUrl = (id: number,) => {
+
+
+
+
+  return `/api/games/${id}/rounds`
+}
+
+/**
+ * @summary Start a stateful interactive round (blackjack, mines, video_poker, hi_lo, crash)
+ */
+export const startRound = async (id: number,
+    roundStartInput: RoundStartInput, options?: RequestInit): Promise<RoundState> => {
+
+  return customFetch<RoundState>(getStartRoundUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      roundStartInput,)
+  }
+);}
+
+
+
+
+export const getStartRoundMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startRound>>, TError,{id: number;data: BodyType<RoundStartInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof startRound>>, TError,{id: number;data: BodyType<RoundStartInput>}, TContext> => {
+
+const mutationKey = ['startRound'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof startRound>>, {id: number;data: BodyType<RoundStartInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  startRound(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StartRoundMutationResult = NonNullable<Awaited<ReturnType<typeof startRound>>>
+    export type StartRoundMutationBody = BodyType<RoundStartInput>
+    export type StartRoundMutationError = ErrorType<void>
+
+    /**
+ * @summary Start a stateful interactive round (blackjack, mines, video_poker, hi_lo, crash)
+ */
+export const useStartRound = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startRound>>, TError,{id: number;data: BodyType<RoundStartInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof startRound>>,
+        TError,
+        {id: number;data: BodyType<RoundStartInput>},
+        TContext
+      > => {
+      return useMutation(getStartRoundMutationOptions(options));
+    }
+
+export const getGetRoundUrl = (roundId: number,
+    params: GetRoundParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/rounds/${roundId}?${stringifiedParams}` : `/api/rounds/${roundId}`
+}
+
+/**
+ * @summary Fetch current round state (resync)
+ */
+export const getRound = async (roundId: number,
+    params: GetRoundParams, options?: RequestInit): Promise<RoundState> => {
+
+  return customFetch<RoundState>(getGetRoundUrl(roundId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetRoundQueryKey = (roundId: number,
+    params?: GetRoundParams,) => {
+    return [
+    `/api/rounds/${roundId}`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetRoundQueryOptions = <TData = Awaited<ReturnType<typeof getRound>>, TError = ErrorType<void>>(roundId: number,
+    params: GetRoundParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRound>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetRoundQueryKey(roundId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getRound>>> = ({ signal }) => getRound(roundId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(roundId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getRound>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetRoundQueryResult = NonNullable<Awaited<ReturnType<typeof getRound>>>
+export type GetRoundQueryError = ErrorType<void>
+
+
+/**
+ * @summary Fetch current round state (resync)
+ */
+
+export function useGetRound<TData = Awaited<ReturnType<typeof getRound>>, TError = ErrorType<void>>(
+ roundId: number,
+    params: GetRoundParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRound>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetRoundQueryOptions(roundId,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getRoundActionUrl = (roundId: number,) => {
+
+
+
+
+  return `/api/rounds/${roundId}/action`
+}
+
+/**
+ * @summary Take an action in an active round (hit/stand/double/reveal/cashout/draw/higher/lower)
+ */
+export const roundAction = async (roundId: number,
+    roundActionInput: RoundActionInput, options?: RequestInit): Promise<RoundState> => {
+
+  return customFetch<RoundState>(getRoundActionUrl(roundId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      roundActionInput,)
+  }
+);}
+
+
+
+
+export const getRoundActionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof roundAction>>, TError,{roundId: number;data: BodyType<RoundActionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof roundAction>>, TError,{roundId: number;data: BodyType<RoundActionInput>}, TContext> => {
+
+const mutationKey = ['roundAction'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof roundAction>>, {roundId: number;data: BodyType<RoundActionInput>}> = (props) => {
+          const {roundId,data} = props ?? {};
+
+          return  roundAction(roundId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RoundActionMutationResult = NonNullable<Awaited<ReturnType<typeof roundAction>>>
+    export type RoundActionMutationBody = BodyType<RoundActionInput>
+    export type RoundActionMutationError = ErrorType<void>
+
+    /**
+ * @summary Take an action in an active round (hit/stand/double/reveal/cashout/draw/higher/lower)
+ */
+export const useRoundAction = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof roundAction>>, TError,{roundId: number;data: BodyType<RoundActionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof roundAction>>,
+        TError,
+        {roundId: number;data: BodyType<RoundActionInput>},
+        TContext
+      > => {
+      return useMutation(getRoundActionMutationOptions(options));
     }
 
 export const getModAuthUrl = () => {

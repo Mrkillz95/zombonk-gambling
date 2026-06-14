@@ -1,6 +1,6 @@
-# [Project name]
+# Zombonk
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A non-real-money virtual casino: players bet virtual coins on a library of games. There are two play styles — interactive games with real mid-round decisions (Blackjack, Mines, Video Poker, Hi-Lo, Crash) and one-shot bet→resolve games (slots, roulette, baccarat, war, etc.) with staged reveal animations. A mod panel can edit odds and rig outcomes for the one-shot games.
 
 ## Run & Operate
 
@@ -22,23 +22,34 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/zombonk` — React + Vite frontend (player UI). `src/pages/game.tsx` = one-shot games + staged reveals; `src/pages/round-game.tsx` = interactive round games.
+- `artifacts/api-server` — Express API. `src/routes/games.ts` = one-shot play + rig engine; `src/routes/rounds.ts` = interactive round engine.
+- `lib/db` — Drizzle schema (source of truth for DB). `src/schema/rounds.ts` = interactive round state.
+- `lib/api-spec/openapi.yaml` — API contract (source of truth); run codegen after edits.
+- Generated client/zod live in `lib/api-client-react` and `lib/api-zod` — do not hand-edit generated files.
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- **Two execution paths.** One-shot games (`games.ts`) are riggable; interactive rounds (`rounds.ts`) deal with honest CSPRNG and intentionally do NOT apply the rig in v1 — forcing a player-decision game would break decision integrity.
+- **Round money integrity.** Round start/action/resolve run in DB transactions with `FOR UPDATE` row locks, atomic balance deltas, and compare-and-set settlement (`WHERE status='active'`) so settles are idempotent and balances can't overdraw under concurrency.
+- **Round state is private.** `GET /rounds/:roundId` requires `playerId` and returns 403 on mismatch (round IDs are enumerable).
+- **No session auth on game calls.** `playerId` is passed explicitly in the request body/query (intentional for this app).
+- **Server logging:** use `req.log` in handlers, never `console.log`.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+Players sign in, receive virtual coins, and play casino games for entertainment (no real money, no cashout). Interactive games let players make real decisions each round; one-shot games resolve instantly with animated reveals. Mods can tune odds and rig one-shot outcomes.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Games must be genuinely interactive where the genre calls for it (real hit/stand/reveal/cashout decisions), not one-click "bet → result". Non-decision games should still show staged reveal animations rather than an instant flash.
+- Keep the dark casino theme.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- **Orval barrel collision:** an endpoint with BOTH a path param and a query param makes the zod client emit a `<Op>Params` value and the types client a `<Op>Params` type, breaking the `@workspace/api-zod` barrel (TS2308). Fix by adding an explicit `export { <Op>Params } from "./generated/api";` after the `export *` lines in `lib/api-zod/src/index.ts`.
+- After editing `openapi.yaml`, run `pnpm --filter @workspace/api-spec run codegen` (it also runs `typecheck:libs`).
+- Verify artifacts with `pnpm --filter @workspace/<slug> run typecheck`, not `build` (build needs workflow-provided env).
 
 ## Pointers
 

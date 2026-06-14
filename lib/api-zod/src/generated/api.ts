@@ -197,6 +197,100 @@ export const PlayGameResponse = zod.object({
 
 
 /**
+ * @summary Start a stateful interactive round (blackjack, mines, video_poker, hi_lo, crash)
+ */
+export const StartRoundParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const StartRoundBody = zod.object({
+  "playerId": zod.number(),
+  "wager": zod.number(),
+  "mineCount": zod.number().nullish(),
+  "optionId": zod.number().nullish(),
+  "pick": zod.string().nullish()
+})
+
+export const StartRoundResponse = zod.object({
+  "roundId": zod.number(),
+  "gameId": zod.number(),
+  "type": zod.string(),
+  "status": zod.enum(['active', 'resolved']),
+  "wager": zod.number(),
+  "state": zod.object({
+
+}).passthrough(),
+  "actions": zod.array(zod.string()),
+  "won": zod.boolean().nullish(),
+  "payout": zod.number(),
+  "newBalance": zod.number(),
+  "message": zod.string(),
+  "betId": zod.number().nullish()
+})
+
+
+/**
+ * @summary Fetch current round state (resync)
+ */
+export const GetRoundParams = zod.object({
+  "roundId": zod.coerce.number()
+})
+
+export const GetRoundQueryParams = zod.object({
+  "playerId": zod.coerce.number()
+})
+
+export const GetRoundResponse = zod.object({
+  "roundId": zod.number(),
+  "gameId": zod.number(),
+  "type": zod.string(),
+  "status": zod.enum(['active', 'resolved']),
+  "wager": zod.number(),
+  "state": zod.object({
+
+}).passthrough(),
+  "actions": zod.array(zod.string()),
+  "won": zod.boolean().nullish(),
+  "payout": zod.number(),
+  "newBalance": zod.number(),
+  "message": zod.string(),
+  "betId": zod.number().nullish()
+})
+
+
+/**
+ * @summary Take an action in an active round (hit/stand/double/reveal/cashout/draw/higher/lower)
+ */
+export const RoundActionParams = zod.object({
+  "roundId": zod.coerce.number()
+})
+
+export const RoundActionBody = zod.object({
+  "playerId": zod.number(),
+  "action": zod.enum(['hit', 'stand', 'double', 'reveal', 'cashout', 'draw', 'higher', 'lower']),
+  "tile": zod.number().nullish(),
+  "hold": zod.array(zod.number()).nullish()
+})
+
+export const RoundActionResponse = zod.object({
+  "roundId": zod.number(),
+  "gameId": zod.number(),
+  "type": zod.string(),
+  "status": zod.enum(['active', 'resolved']),
+  "wager": zod.number(),
+  "state": zod.object({
+
+}).passthrough(),
+  "actions": zod.array(zod.string()),
+  "won": zod.boolean().nullish(),
+  "payout": zod.number(),
+  "newBalance": zod.number(),
+  "message": zod.string(),
+  "betId": zod.number().nullish()
+})
+
+
+/**
  * @summary Verify moderator password
  */
 export const ModAuthBody = zod.object({

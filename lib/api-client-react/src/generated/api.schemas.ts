@@ -295,6 +295,67 @@ export interface PlayResult {
   betId?: number;
 }
 
+export interface RoundStartInput {
+  playerId: number;
+  wager: number;
+  /** @nullable */
+  mineCount?: number | null;
+  /** @nullable */
+  optionId?: number | null;
+  /** @nullable */
+  pick?: string | null;
+}
+
+export type RoundActionInputAction = typeof RoundActionInputAction[keyof typeof RoundActionInputAction];
+
+
+export const RoundActionInputAction = {
+  hit: 'hit',
+  stand: 'stand',
+  double: 'double',
+  reveal: 'reveal',
+  cashout: 'cashout',
+  draw: 'draw',
+  higher: 'higher',
+  lower: 'lower',
+} as const;
+
+export interface RoundActionInput {
+  playerId: number;
+  action: RoundActionInputAction;
+  /** @nullable */
+  tile?: number | null;
+  /** @nullable */
+  hold?: number[] | null;
+}
+
+export type RoundStateStatus = typeof RoundStateStatus[keyof typeof RoundStateStatus];
+
+
+export const RoundStateStatus = {
+  active: 'active',
+  resolved: 'resolved',
+} as const;
+
+export type RoundStateState = { [key: string]: unknown };
+
+export interface RoundState {
+  roundId: number;
+  gameId: number;
+  type: string;
+  status: RoundStateStatus;
+  wager: number;
+  state: RoundStateState;
+  actions: string[];
+  /** @nullable */
+  won?: boolean | null;
+  payout: number;
+  newBalance: number;
+  message: string;
+  /** @nullable */
+  betId?: number | null;
+}
+
 export type BetDetails = { [key: string]: unknown };
 
 export interface Bet {
@@ -465,6 +526,10 @@ export interface UpdateRedemptionRequestBody {
 
 export type ListGamesParams = {
 status?: string;
+};
+
+export type GetRoundParams = {
+playerId: number;
 };
 
 export type ModDeleteRedemptionItem200 = {
