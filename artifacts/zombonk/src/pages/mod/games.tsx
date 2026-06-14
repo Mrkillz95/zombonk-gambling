@@ -20,7 +20,9 @@ import { useToast } from "@/hooks/use-toast";
 type GameType =
   | "slots" | "coin_flip" | "match_bet" | "number_pick" | "mystery_box"
   | "dice" | "roulette" | "wheel" | "card_draw" | "over_under"
-  | "trivia" | "jackpot" | "color_pick" | "hi_lo" | "lucky_spin";
+  | "trivia" | "jackpot" | "color_pick" | "hi_lo" | "lucky_spin"
+  | "plinko" | "blackjack" | "crash" | "keno" | "scratch_card"
+  | "video_poker" | "mines" | "war" | "baccarat" | "three_card_poker";
 
 interface OptionInput { label: string; odds: number; emoji: string; weight: number; }
 interface SlotItem { label: string; emoji: string; weight: number; payout: number; }
@@ -45,6 +47,13 @@ interface GameFormState {
   triviaQuestion: string;
   jackpotTickets: number;
   jackpotAmount: number;
+  // New game fields
+  plinkRows: number;
+  plinkMults: string;
+  crashMaxTarget: number;
+  kenoMaxSpots: number;
+  minesMaxMines: number;
+  warTieMult: number;
 }
 
 const DEFAULT_FORM: GameFormState = {
@@ -69,6 +78,8 @@ const DEFAULT_FORM: GameFormState = {
   hiLoShown: 50,
   triviaQuestion: "",
   jackpotTickets: 100, jackpotAmount: 10000,
+  plinkRows: 8, plinkMults: "0.3, 0.5, 1, 2, 5, 2, 1, 0.5, 0.3",
+  crashMaxTarget: 50, kenoMaxSpots: 10, minesMaxMines: 24, warTieMult: 3,
 };
 
 const TYPE_DEFAULT_OPTIONS: Partial<Record<GameType, OptionInput[]>> = {
@@ -105,12 +116,20 @@ const TYPE_DEFAULT_OPTIONS: Partial<Record<GameType, OptionInput[]>> = {
     { label: "Gold", odds: 6, emoji: "🥇", weight: 2 },
     { label: "Platinum", odds: 20, emoji: "💎", weight: 1 },
   ],
+  blackjack: [{ label: "Hit", odds: 2, emoji: "", weight: 1 }, { label: "Stand", odds: 2, emoji: "", weight: 1 }],
+  baccarat: [
+    { label: "Player", odds: 2, emoji: "🔵", weight: 1 },
+    { label: "Banker", odds: 1.95, emoji: "🔴", weight: 1 },
+    { label: "Tie", odds: 8, emoji: "🟢", weight: 1 },
+  ],
 };
 
 // Types with no options (config-based)
-const CONFIG_ONLY_TYPES = new Set<GameType>(["slots", "number_pick", "dice", "wheel", "over_under", "hi_lo", "jackpot"]);
+const CONFIG_ONLY_TYPES = new Set<GameType>(["slots", "number_pick", "dice", "wheel", "over_under", "hi_lo", "jackpot",
+  "plinko", "crash", "keno", "scratch_card", "video_poker", "mines", "war", "three_card_poker"]);
 // Types with options
-const OPTION_TYPES = new Set<GameType>(["coin_flip", "match_bet", "mystery_box", "roulette", "card_draw", "trivia", "color_pick", "lucky_spin"]);
+const OPTION_TYPES = new Set<GameType>(["coin_flip", "match_bet", "mystery_box", "roulette", "card_draw", "trivia", "color_pick", "lucky_spin",
+  "blackjack", "baccarat"]);
 
 const ALL_TYPES: { value: GameType; label: string }[] = [
   { value: "coin_flip", label: "Coin Flip" },
@@ -128,6 +147,16 @@ const ALL_TYPES: { value: GameType; label: string }[] = [
   { value: "color_pick", label: "Color Pick" },
   { value: "hi_lo", label: "Hi-Lo" },
   { value: "lucky_spin", label: "Lucky Spin" },
+  { value: "plinko", label: "Plinko" },
+  { value: "blackjack", label: "Blackjack" },
+  { value: "crash", label: "Crash" },
+  { value: "keno", label: "Keno" },
+  { value: "scratch_card", label: "Scratch Card" },
+  { value: "video_poker", label: "Video Poker" },
+  { value: "mines", label: "Minesweeper" },
+  { value: "war", label: "War" },
+  { value: "baccarat", label: "Baccarat" },
+  { value: "three_card_poker", label: "Three Card Poker" },
 ];
 
 const STATUS_COLORS: Record<string, string> = {
@@ -166,6 +195,21 @@ function buildPayload(form: GameFormState) {
     options = form.options;
   } else if (form.type === "jackpot") {
     config = { tickets: form.jackpotTickets, jackpot: form.jackpotAmount };
+  } else if (form.type === "plinko") {
+    const mults = form.plinkMults.split(",").map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
+    config = { rows: form.plinkRows, multipliers: mults.length ? mults : [0.3,0.5,1,2,5,2,1,0.5,0.3] };
+  } else if (form.type === "crash") {
+    config = { maxTarget: form.crashMaxTarget };
+  } else if (form.type === "keno") {
+    config = { maxSpots: form.kenoMaxSpots };
+  } else if (form.type === "mines") {
+    config = { maxMines: form.minesMaxMines };
+  } else if (form.type === "war") {
+    config = { tieMult: form.warTieMult, winMult: 2 };
+  } else if (form.type === "blackjack") {
+    options = form.options; config = { win_multiplier: 2 };
+  } else if (form.type === "baccarat") {
+    options = form.options;
   } else {
     options = form.options;
   }
@@ -387,6 +431,85 @@ function GameForm({
         </div>
       )}
 
+      {/* ── PLINKO config ── */}
+      {form.type === "plinko" && (
+        <div className="space-y-3">
+          <div className="space-y-1 max-w-xs">
+            <label className="text-xs text-muted-foreground font-medium uppercase">Rows (4–12)</label>
+            <Input type="number" min="4" max="12" value={form.plinkRows}
+              onChange={e => setForm(p => ({ ...p, plinkRows: parseInt(e.target.value) || 8 }))} className="h-10 font-mono" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground font-medium uppercase">Multipliers (comma-separated, left→right)</label>
+            <Input value={form.plinkMults}
+              onChange={e => setForm(p => ({ ...p, plinkMults: e.target.value }))} className="h-10 font-mono"
+              placeholder="0.3, 0.5, 1, 2, 5, 2, 1, 0.5, 0.3" />
+            <p className="text-xs text-muted-foreground">Number of slots = rows + 1 (8 rows → 9 slots)</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── CRASH config ── */}
+      {form.type === "crash" && (
+        <div className="space-y-1 max-w-xs">
+          <label className="text-xs text-muted-foreground font-medium uppercase">Max Cashout Target</label>
+          <Input type="number" min="2" value={form.crashMaxTarget}
+            onChange={e => setForm(p => ({ ...p, crashMaxTarget: parseInt(e.target.value) || 50 }))} className="h-10 font-mono" />
+          <p className="text-xs text-muted-foreground">Players enter a target between 1.1x and this max.</p>
+        </div>
+      )}
+
+      {/* ── KENO config ── */}
+      {form.type === "keno" && (
+        <div className="space-y-1 max-w-xs">
+          <label className="text-xs text-muted-foreground font-medium uppercase">Max Spots (1–10)</label>
+          <Input type="number" min="1" max="10" value={form.kenoMaxSpots}
+            onChange={e => setForm(p => ({ ...p, kenoMaxSpots: parseInt(e.target.value) || 10 }))} className="h-10 font-mono" />
+          <p className="text-xs text-muted-foreground">Players pick 1 to this many spots from a pool of 80. 20 numbers are drawn.</p>
+        </div>
+      )}
+
+      {/* ── MINES config ── */}
+      {form.type === "mines" && (
+        <div className="space-y-1 max-w-xs">
+          <label className="text-xs text-muted-foreground font-medium uppercase">Max Mines (1–24)</label>
+          <Input type="number" min="1" max="24" value={form.minesMaxMines}
+            onChange={e => setForm(p => ({ ...p, minesMaxMines: parseInt(e.target.value) || 24 }))} className="h-10 font-mono" />
+          <p className="text-xs text-muted-foreground">Players pick how many mines to place (1 to max). More mines = bigger payout.</p>
+        </div>
+      )}
+
+      {/* ── WAR config ── */}
+      {form.type === "war" && (
+        <div className="space-y-1 max-w-xs">
+          <label className="text-xs text-muted-foreground font-medium uppercase">War (Tie) Multiplier</label>
+          <Input type="number" min="2" step="0.5" value={form.warTieMult}
+            onChange={e => setForm(p => ({ ...p, warTieMult: parseFloat(e.target.value) || 3 }))} className="h-10 font-mono" />
+          <p className="text-xs text-muted-foreground">Payout when a tie triggers War and player wins. Regular win = 2x.</p>
+        </div>
+      )}
+
+      {/* ── BLACKJACK note ── */}
+      {form.type === "blackjack" && (
+        <p className="text-xs text-muted-foreground bg-background rounded p-3 border border-border">
+          Hit: player draws an extra card. Stand: player sticks with 2 cards. Dealer hits to 17. Win pays 2x.
+        </p>
+      )}
+
+      {/* ── BACCARAT note ── */}
+      {form.type === "baccarat" && (
+        <p className="text-xs text-muted-foreground bg-background rounded p-3 border border-border">
+          Standard odds: Player=2x, Banker=1.95x, Tie=8x. Adjust the option odds below to customise payouts.
+        </p>
+      )}
+
+      {/* ── Fixed-paytable games note ── */}
+      {(form.type === "video_poker" || form.type === "scratch_card" || form.type === "three_card_poker") && (
+        <p className="text-xs text-muted-foreground bg-background rounded p-3 border border-border italic">
+          This game uses a fixed built-in paytable — no additional configuration needed.
+        </p>
+      )}
+
       {/* ── Option editor (option-based types) ── */}
       {OPTION_TYPES.has(form.type) && (
         <div className="space-y-2">
@@ -440,6 +563,11 @@ function gameToForm(game: any): GameFormState {
   if (game.type === "hi_lo") return { ...base, hiLoShown: c.shown ?? 50 };
   if (game.type === "trivia") return { ...base, triviaQuestion: c.question ?? "" };
   if (game.type === "jackpot") return { ...base, jackpotTickets: c.tickets ?? 100, jackpotAmount: c.jackpot ?? 10000 };
+  if (game.type === "plinko") return { ...base, plinkRows: c.rows ?? 8, plinkMults: (c.multipliers ?? [0.3,0.5,1,2,5,2,1,0.5,0.3]).join(", ") };
+  if (game.type === "crash") return { ...base, crashMaxTarget: c.maxTarget ?? 50 };
+  if (game.type === "keno") return { ...base, kenoMaxSpots: c.maxSpots ?? 10 };
+  if (game.type === "mines") return { ...base, minesMaxMines: c.maxMines ?? 24 };
+  if (game.type === "war") return { ...base, warTieMult: c.tieMult ?? 3 };
 
   return base;
 }

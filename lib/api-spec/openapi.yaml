@@ -654,7 +654,7 @@ components:
           type: string
         type:
           type: string
-          enum: [slots, coin_flip, match_bet, number_pick, mystery_box, dice, roulette, wheel, card_draw, over_under, trivia, jackpot, color_pick, hi_lo, lucky_spin]
+          enum: [slots, coin_flip, match_bet, number_pick, mystery_box, dice, roulette, wheel, card_draw, over_under, trivia, jackpot, color_pick, hi_lo, lucky_spin, plinko, blackjack, crash, keno, scratch_card, video_poker, mines, war, baccarat, three_card_poker]
         status:
           type: string
           enum: [open, closed, resolved]
@@ -697,7 +697,7 @@ components:
           type: string
         type:
           type: string
-          enum: [slots, coin_flip, match_bet, number_pick, mystery_box, dice, roulette, wheel, card_draw, over_under, trivia, jackpot, color_pick, hi_lo, lucky_spin]
+          enum: [slots, coin_flip, match_bet, number_pick, mystery_box, dice, roulette, wheel, card_draw, over_under, trivia, jackpot, color_pick, hi_lo, lucky_spin, plinko, blackjack, crash, keno, scratch_card, video_poker, mines, war, baccarat, three_card_poker]
         config:
           type: object
         options:

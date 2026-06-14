@@ -39,6 +39,16 @@ export const GameType = {
   color_pick: 'color_pick',
   hi_lo: 'hi_lo',
   lucky_spin: 'lucky_spin',
+  plinko: 'plinko',
+  blackjack: 'blackjack',
+  crash: 'crash',
+  keno: 'keno',
+  scratch_card: 'scratch_card',
+  video_poker: 'video_poker',
+  mines: 'mines',
+  war: 'war',
+  baccarat: 'baccarat',
+  three_card_poker: 'three_card_poker',
 } as const;
 
 export type GameStatus = typeof GameStatus[keyof typeof GameStatus];
@@ -100,6 +110,16 @@ export const GameInputType = {
   color_pick: 'color_pick',
   hi_lo: 'hi_lo',
   lucky_spin: 'lucky_spin',
+  plinko: 'plinko',
+  blackjack: 'blackjack',
+  crash: 'crash',
+  keno: 'keno',
+  scratch_card: 'scratch_card',
+  video_poker: 'video_poker',
+  mines: 'mines',
+  war: 'war',
+  baccarat: 'baccarat',
+  three_card_poker: 'three_card_poker',
 } as const;
 
 export type GameInputConfig = { [key: string]: unknown };

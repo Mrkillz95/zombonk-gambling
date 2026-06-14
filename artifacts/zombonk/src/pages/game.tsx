@@ -21,14 +21,18 @@ const GAME_LABELS: Record<string, string> = {
   roulette: "Roulette", wheel: "Spin the Wheel", card_draw: "Card Draw",
   over_under: "Over / Under", trivia: "Trivia", jackpot: "Jackpot",
   color_pick: "Color Pick", hi_lo: "Hi-Lo", lucky_spin: "Lucky Spin",
+  plinko: "Plinko", blackjack: "Blackjack", crash: "Crash",
+  keno: "Keno", scratch_card: "Scratch Card", video_poker: "Video Poker",
+  mines: "Minesweeper", war: "War", baccarat: "Baccarat",
+  three_card_poker: "Three Card Poker",
 };
 
 // Types where player picks an option
-const OPTION_TYPES = new Set(["coin_flip","match_bet","mystery_box","roulette","card_draw","over_under","trivia","color_pick","hi_lo","lucky_spin"]);
+const OPTION_TYPES = new Set(["coin_flip","match_bet","mystery_box","roulette","card_draw","over_under","trivia","color_pick","hi_lo","lucky_spin","blackjack","baccarat"]);
 // Types where player enters a number
-const NUMBER_TYPES = new Set(["number_pick","dice","jackpot"]);
+const NUMBER_TYPES = new Set(["number_pick","dice","jackpot","crash","keno","mines"]);
 // Types with no player choice (just click play)
-const AUTO_TYPES = new Set(["wheel"]);
+const AUTO_TYPES = new Set(["wheel","plinko","scratch_card","video_poker","war","three_card_poker"]);
 
 // ── Slot Machine ───────────────────────────────────────────────────────────
 function SlotMachine({ config, isSpinning, result }: { config: any; isSpinning: boolean; result: string[] | null }) {
@@ -77,6 +81,18 @@ function OptionGrid({ options, selected, onSelect, columns = 2 }: {
           <span className="text-xs text-muted-foreground font-normal mt-0.5">{opt.odds}x</span>
         </button>
       ))}
+    </div>
+  );
+}
+
+// ── Playing Card ───────────────────────────────────────────────────────────
+function PlayingCard({ face, suit, size = "md" }: { face: string; suit: string; size?: "sm" | "md" }) {
+  const isRed = suit === "♥" || suit === "♦";
+  const cls = size === "sm" ? "w-9 h-12 text-xs" : "w-12 h-16 text-sm";
+  return (
+    <div className={`${cls} bg-zinc-100 dark:bg-zinc-200 rounded border border-zinc-300 flex flex-col items-center justify-center gap-0.5 shadow-sm shrink-0`}>
+      <span className={`font-black leading-none ${isRed ? "text-red-600" : "text-zinc-900"}`}>{face}</span>
+      <span className={`leading-none ${size === "sm" ? "text-base" : "text-xl"} ${isRed ? "text-red-500" : "text-zinc-800"}`}>{suit}</span>
     </div>
   );
 }
@@ -354,6 +370,312 @@ export default function GamePage() {
                       <span className="text-sm leading-tight">{opt.label}</span>
                       <span className="text-xs text-muted-foreground font-normal">{opt.odds}x</span>
                     </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── PLINKO ── */}
+            {type === "plinko" && (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground text-center">Drop the ball through the pegs!</p>
+                <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${(config?.multipliers ?? [0.3,0.5,1,2,5,2,1,0.5,0.3]).length}, 1fr)` }}>
+                  {(config?.multipliers ?? [0.3,0.5,1,2,5,2,1,0.5,0.3]).map((m: number, i: number) => {
+                    const d = result?.details as any;
+                    const isLanded = d && d.slot === i;
+                    return (
+                      <div key={i} className={`h-10 rounded flex items-center justify-center text-xs font-bold border transition-all ${
+                        isLanded && result?.won ? "bg-primary border-primary text-primary-foreground" :
+                        isLanded ? "bg-destructive/20 border-destructive text-destructive" :
+                        m > 1 ? "bg-primary/10 border-primary/30 text-primary" :
+                        "bg-background border-border text-muted-foreground"
+                      }`}>{m}x</div>
+                    );
+                  })}
+                </div>
+                {result?.details && (result.details as any).path && (
+                  <p className="text-xs text-center text-muted-foreground font-mono">
+                    Path: {(result.details as any).path.join("")}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* ── BLACKJACK ── */}
+            {type === "blackjack" && game.options && (
+              <div className="space-y-3">
+                {result?.details && (
+                  <div className="space-y-2 pb-2 border-b border-border">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1.5">Your hand — <span className="text-foreground font-bold">{(result.details as any).playerTotal}</span></p>
+                      <div className="flex gap-2 flex-wrap">
+                        {(result.details as any).playerCards.map((c: any, i: number) => <PlayingCard key={i} face={c.face} suit={c.suit} />)}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1.5">Dealer — <span className="text-foreground font-bold">{(result.details as any).dealerTotal}</span></p>
+                      <div className="flex gap-2 flex-wrap">
+                        {(result.details as any).dealerCards.map((c: any, i: number) => <PlayingCard key={i} face={c.face} suit={c.suit} />)}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <p className="text-sm text-muted-foreground">Choose your move — cards dealt after</p>
+                <OptionGrid options={game.options} selected={selectedOptionId} onSelect={setSelectedOptionId} columns={2} />
+              </div>
+            )}
+
+            {/* ── CRASH ── */}
+            {type === "crash" && (
+              <div className="space-y-3">
+                {result?.details && (
+                  <div className="flex gap-6 justify-center py-2">
+                    <div className="text-center">
+                      <p className="text-xs text-muted-foreground">Crashed at</p>
+                      <p className={`text-3xl font-black ${result.won ? "text-primary" : "text-destructive"}`}>{(result.details as any).crashPoint}x</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-muted-foreground">Your target</p>
+                      <p className="text-3xl font-black text-foreground">{(result.details as any).target}x</p>
+                    </div>
+                  </div>
+                )}
+                <p className="text-sm text-muted-foreground">Enter your cashout multiplier (min 1.1×)</p>
+                <Input data-testid="input-number-pick" type="number" min="1.1" max={config?.maxTarget ?? 100} step="0.1"
+                  value={numPick} onChange={(e) => setNumPick(e.target.value)}
+                  className="h-14 text-2xl text-center font-bold" placeholder="e.g. 2.0" />
+                <p className="text-xs text-muted-foreground text-right">Higher target = higher risk & reward</p>
+              </div>
+            )}
+
+            {/* ── KENO ── */}
+            {type === "keno" && (
+              <div className="space-y-3">
+                {result?.details && (
+                  <div className="space-y-1 pb-2 border-b border-border text-sm">
+                    <p className="text-muted-foreground text-xs">Your numbers: {(result.details as any).playerNumbers.join(", ")}</p>
+                    <p className="text-muted-foreground text-xs">Drawn: {(result.details as any).drawn.slice(0,10).join(", ")}{(result.details as any).drawn.length > 10 ? "…" : ""}</p>
+                    <p className="font-bold text-foreground">
+                      Matched: {(result.details as any).matches} / {(result.details as any).spots}
+                      {(result.details as any).multiplier > 0 && <span className="text-primary"> → {(result.details as any).multiplier}x</span>}
+                    </p>
+                  </div>
+                )}
+                <p className="text-sm text-muted-foreground">Pick 1–{config?.maxSpots ?? 10} spots. More spots = higher potential payout.</p>
+                <Input data-testid="input-number-pick" type="number" min="1" max={config?.maxSpots ?? 10}
+                  value={numPick} onChange={(e) => setNumPick(e.target.value)}
+                  className="h-14 text-2xl text-center font-bold" placeholder={`1 – ${config?.maxSpots ?? 10}`} />
+                <p className="text-xs text-muted-foreground">20 numbers drawn from a pool of 80</p>
+              </div>
+            )}
+
+            {/* ── SCRATCH CARD ── */}
+            {type === "scratch_card" && (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground text-center">Scratch to reveal — match 3 for big prizes!</p>
+                <div className="grid grid-cols-3 gap-3">
+                  {(result?.reels ?? ["?","?","?"]).map((sym: string, i: number) => {
+                    const allMatch = result?.reels && result.reels.every((s: string) => s === result.reels[0]);
+                    const twoMatch = result?.reels && !allMatch && (result.reels[0]===result.reels[1]||result.reels[1]===result.reels[2]||result.reels[0]===result.reels[2]);
+                    const thisMatch = result && (allMatch || (twoMatch && (
+                      (i===0&&(result.reels[0]===result.reels[1]||result.reels[0]===result.reels[2])) ||
+                      (i===1&&(result.reels[0]===result.reels[1]||result.reels[1]===result.reels[2])) ||
+                      (i===2&&(result.reels[0]===result.reels[2]||result.reels[1]===result.reels[2]))
+                    )));
+                    return (
+                      <div key={i} className={`h-20 rounded-xl border-2 flex items-center justify-center text-center font-bold text-xs px-2 transition-all ${
+                        !result ? "border-border bg-background text-muted-foreground" :
+                        allMatch ? "border-primary bg-primary/10 text-primary" :
+                        thisMatch ? "border-yellow-500/60 bg-yellow-500/10 text-yellow-400" :
+                        "border-border bg-background text-foreground/50"
+                      }`}>
+                        {result ? <span>{sym}</span> : <span className="text-2xl">?</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+                {!result && config?.symbols && (
+                  <div className="grid grid-cols-2 gap-1 text-xs">
+                    {config.symbols.map((s: any) => (
+                      <div key={s.label} className="flex justify-between text-muted-foreground bg-background rounded px-2 py-1">
+                        <span>{s.label}</span><span className="text-accent font-mono">{s.payout}x</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── VIDEO POKER ── */}
+            {type === "video_poker" && (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground text-center">5-card deal — best hand wins!</p>
+                {result?.details ? (
+                  <div className="space-y-2">
+                    <div className="flex gap-2 justify-center flex-wrap">
+                      {(result.details as any).cards.map((c: any, i: number) => <PlayingCard key={i} face={c.face} suit={c.suit} />)}
+                    </div>
+                    <p className="text-center text-sm font-bold text-primary">{(result.details as any).handName}</p>
+                  </div>
+                ) : (
+                  <div className="flex gap-2 justify-center">
+                    {Array(5).fill(null).map((_,i) => (
+                      <div key={i} className="w-12 h-16 bg-primary/10 border-2 border-primary/30 rounded flex items-center justify-center text-primary/40 font-bold text-xl">?</div>
+                    ))}
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-1 text-xs">
+                  {[["Royal Flush","800x"],["Straight Flush","50x"],["4 of a Kind","25x"],["Full House","9x"],["Flush","6x"],["Straight","4x"],["3 of a Kind","3x"],["Two Pair","2x"],["Jacks or Better","1x"]].map(([h,p]) => (
+                    <div key={h} className="flex justify-between text-muted-foreground bg-background rounded px-2 py-1">
+                      <span>{h}</span><span className="text-accent font-mono">{p}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── MINES ── */}
+            {type === "mines" && (
+              <div className="space-y-3">
+                {result?.details && (
+                  <div className="space-y-1 pb-2 border-b border-border">
+                    <div className="grid grid-cols-5 gap-1">
+                      {(result.details as any).grid.map((cell: string, i: number) => (
+                        <div key={i} className={`h-10 rounded flex items-center justify-center border text-base ${
+                          cell==="picked_mine" ? "bg-destructive border-destructive text-white" :
+                          cell==="picked_safe" ? "bg-primary/20 border-primary text-primary" :
+                          cell==="mine" ? "bg-destructive/15 border-destructive/30 text-destructive/70" :
+                          "bg-background border-border"
+                        }`}>
+                          {cell==="mine"||cell==="picked_mine" ? "💣" : cell==="picked_safe" ? "💎" : ""}
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground text-center">
+                      {(result.details as any).mineCount} mines · {(result.details as any).multiplier}x if safe
+                    </p>
+                  </div>
+                )}
+                <p className="text-sm text-muted-foreground">Enter number of mines (1–{config?.maxMines ?? 24}). More mines = higher payout.</p>
+                <Input data-testid="input-number-pick" type="number" min="1" max={config?.maxMines ?? 24}
+                  value={numPick} onChange={(e) => setNumPick(e.target.value)}
+                  className="h-14 text-2xl text-center font-bold" placeholder={`1 – ${config?.maxMines ?? 24}`} />
+                {numPick && !isNaN(parseInt(numPick)) && parseInt(numPick) >= 1 && parseInt(numPick) <= 24 && (
+                  <p className="text-xs text-muted-foreground text-right">
+                    Payout if safe: ~{(Math.max(1.05, (25/(25-parseInt(numPick)))*0.95)).toFixed(2)}x
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* ── WAR ── */}
+            {type === "war" && (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground text-center">Higher card wins! Tie = War (3x)</p>
+                {result?.details ? (
+                  <div className="flex gap-4 items-center justify-center py-2">
+                    <div className="text-center space-y-1">
+                      <p className="text-xs text-muted-foreground">You</p>
+                      <PlayingCard face={(result.details as any).playerCard.face} suit={(result.details as any).playerCard.suit} />
+                    </div>
+                    {(result.details as any).war && <span className="text-yellow-400 font-black text-sm">WAR!</span>}
+                    <span className="text-muted-foreground font-bold text-sm">vs</span>
+                    <div className="text-center space-y-1">
+                      <p className="text-xs text-muted-foreground">Dealer</p>
+                      <PlayingCard face={(result.details as any).dealerCard.face} suit={(result.details as any).dealerCard.suit} />
+                    </div>
+                    {(result.details as any).war && (result.details as any).warPlayer && (
+                      <>
+                        <span className="text-muted-foreground text-xs">→</span>
+                        <div className="text-center space-y-1">
+                          <p className="text-xs text-muted-foreground">You (war)</p>
+                          <PlayingCard face={(result.details as any).warPlayer.face} suit={(result.details as any).warPlayer.suit} size="sm" />
+                        </div>
+                        <span className="text-muted-foreground text-xs">vs</span>
+                        <div className="text-center space-y-1">
+                          <p className="text-xs text-muted-foreground">Dealer (war)</p>
+                          <PlayingCard face={(result.details as any).warDealer.face} suit={(result.details as any).warDealer.suit} size="sm" />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex gap-8 items-center justify-center py-4">
+                    <div className="text-center space-y-1">
+                      <p className="text-xs text-muted-foreground">You</p>
+                      <div className="w-12 h-16 bg-primary/10 border-2 border-primary/30 rounded flex items-center justify-center text-primary/40 text-xl">?</div>
+                    </div>
+                    <span className="text-muted-foreground font-bold">vs</span>
+                    <div className="text-center space-y-1">
+                      <p className="text-xs text-muted-foreground">Dealer</p>
+                      <div className="w-12 h-16 bg-background border-2 border-border rounded flex items-center justify-center text-muted-foreground/40 text-xl">?</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── BACCARAT ── */}
+            {type === "baccarat" && game.options && (
+              <div className="space-y-3">
+                {result?.details && (
+                  <div className="grid grid-cols-2 gap-3 pb-2 border-b border-border">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1.5">Player — <span className={`font-bold ${(result.details as any).outcome==="player"?"text-primary":"text-foreground"}`}>{(result.details as any).playerScore}</span></p>
+                      <div className="flex gap-1.5 flex-wrap">
+                        {(result.details as any).playerCards.map((c: any, i: number) => <PlayingCard key={i} face={c.face} suit={c.suit} size="sm" />)}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1.5">Banker — <span className={`font-bold ${(result.details as any).outcome==="banker"?"text-primary":"text-foreground"}`}>{(result.details as any).bankerScore}</span></p>
+                      <div className="flex gap-1.5 flex-wrap">
+                        {(result.details as any).bankerCards.map((c: any, i: number) => <PlayingCard key={i} face={c.face} suit={c.suit} size="sm" />)}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <p className="text-sm text-muted-foreground">Place your bet</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {game.options.map((opt) => {
+                    const lower = opt.label.toLowerCase();
+                    const colorCls = lower.includes("bank") ? "border-red-700 bg-red-950/50 text-red-300 hover:border-red-500"
+                      : lower.includes("tie") ? "border-green-700 bg-green-950/50 text-green-300 hover:border-green-500"
+                      : "border-blue-700 bg-blue-950/50 text-blue-300 hover:border-blue-500";
+                    return (
+                      <button key={opt.id} data-testid={`button-option-${opt.id}`} onClick={() => setSelectedOptionId(opt.id)}
+                        className={`h-16 rounded-lg border-2 flex flex-col items-center justify-center font-bold transition-all ${selectedOptionId===opt.id?"ring-2 ring-white/20 ":""}${colorCls}`}>
+                        <span className="text-sm">{opt.label}</span>
+                        <span className="text-xs opacity-70">{opt.odds}x</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ── THREE CARD POKER ── */}
+            {type === "three_card_poker" && (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground text-center">3-card deal — best hand wins!</p>
+                {result?.details ? (
+                  <div className="space-y-2">
+                    <div className="flex gap-3 justify-center">
+                      {(result.details as any).cards.map((c: any, i: number) => <PlayingCard key={i} face={c.face} suit={c.suit} />)}
+                    </div>
+                    <p className="text-center text-sm font-bold text-primary">{(result.details as any).handName}</p>
+                  </div>
+                ) : (
+                  <div className="flex gap-3 justify-center">
+                    {Array(3).fill(null).map((_,i) => (
+                      <div key={i} className="w-12 h-16 bg-primary/10 border-2 border-primary/30 rounded flex items-center justify-center text-primary/40 font-bold text-xl">?</div>
+                    ))}
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-1 text-xs">
+                  {[["Mini Royal","40x"],["Three of a Kind","30x"],["Straight Flush","20x"],["Straight","6x"],["Flush","3x"],["Pair","2x"]].map(([h,p]) => (
+                    <div key={h} className="flex justify-between text-muted-foreground bg-background rounded px-2 py-1">
+                      <span>{h}</span><span className="text-accent font-mono">{p}</span>
+                    </div>
                   ))}
                 </div>
               </div>
