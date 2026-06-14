@@ -6,3 +6,4 @@
 - [Dev DB holds real data](dev-db-shared-real-data.md) — dev Postgres has the user's real players/balances; snapshot rows before destructive/bulk tests.
 - [Mod auth gating](mod-auth-gate.md) — server checkAuth is the real control; client ModGuard must verify password via /mod/auth, not just check localStorage presence; IP allowlist enforced centrally by modIpGate.
 - [CSPRNG for randomness](csprng-randomness.md) — never use Math.random; use the package-local secureRandom() drop-ins (server crypto.randomBytes, client getRandomValues) for all outcomes.
+- [Too-lucky flagging](too-lucky-flagging.md) — improbable-win detection: bias win-prob estimates high (under-flag), keep streak override probability-based not length, always show rigged flag.

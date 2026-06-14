@@ -5,6 +5,8 @@ import {
   getModGetStatsQueryKey,
   useModListPlayers,
   getModListPlayersQueryKey,
+  useModListFlaggedPlayers,
+  getModListFlaggedPlayersQueryKey,
   useModUpdatePlayerBalance,
   useModRigPlayer,
   useModDeletePlayer,
@@ -27,6 +29,22 @@ type GlobalRig = {
   applyAfterBalance?: number | null;
   message?: string | null;
 };
+
+const SEVERITY_STYLES: Record<string, { label: string; badge: string }> = {
+  impossible: { label: "Impossible", badge: "bg-red-500/20 text-red-400 border-red-500/40" },
+  suspicious: { label: "Suspicious", badge: "bg-orange-500/20 text-orange-400 border-orange-500/40" },
+  watch: { label: "Watch", badge: "bg-yellow-500/20 text-yellow-400 border-yellow-500/40" },
+};
+
+function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div>
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="text-sm font-mono font-bold text-foreground">{value}</p>
+      {sub && <p className="text-[10px] text-muted-foreground font-mono">{sub}</p>}
+    </div>
+  );
+}
 
 function rigLabel(rig: GlobalRig | null): string | null {
   if (!rig) return null;
@@ -58,6 +76,11 @@ export default function ModDashboard() {
     query: { enabled: !!password, queryKey: getModListPlayersQueryKey() },
   });
 
+  const { data: flaggedPlayers, isLoading: flaggedLoading } = useModListFlaggedPlayers({
+    request: req,
+    query: { enabled: !!password, queryKey: getModListFlaggedPlayersQueryKey() },
+  });
+
   const balanceMutation = useModUpdatePlayerBalance({ request: req });
   const rigMutation = useModRigPlayer({ request: req });
   const deleteMutation = useModDeletePlayer({ request: req });
@@ -71,6 +94,7 @@ export default function ModDashboard() {
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getModListPlayersQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getModListFlaggedPlayersQueryKey() });
           queryClient.invalidateQueries({ queryKey: getModGetStatsQueryKey() });
           toast({ title: `Deleted ${name}` });
         },
@@ -130,6 +154,7 @@ export default function ModDashboard() {
         onSuccess: (res) => {
           setSetAllInput("");
           queryClient.invalidateQueries({ queryKey: getModListPlayersQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getModListFlaggedPlayersQueryKey() });
           toast({ title: `Updated ${res.updated} player${res.updated === 1 ? "" : "s"}` });
         },
         onError: () => toast({ title: "Failed to set balances", variant: "destructive" }),
@@ -146,6 +171,7 @@ export default function ModDashboard() {
         onSuccess: () => {
           setEditingId(null);
           queryClient.invalidateQueries({ queryKey: getModListPlayersQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getModListFlaggedPlayersQueryKey() });
           toast({ title: "Balance updated" });
         },
         onError: () => toast({ title: "Failed to update balance", variant: "destructive" }),
@@ -173,6 +199,7 @@ export default function ModDashboard() {
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getModListPlayersQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getModListFlaggedPlayersQueryKey() });
           toast({ title: "Global rig saved" });
         },
         onError: () => toast({ title: "Failed to save rig", variant: "destructive" }),
@@ -187,6 +214,7 @@ export default function ModDashboard() {
         onSuccess: () => {
           setRigEdits(prev => { const n = { ...prev }; delete n[playerId]; return n; });
           queryClient.invalidateQueries({ queryKey: getModListPlayersQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getModListFlaggedPlayersQueryKey() });
           toast({ title: "Global rig cleared" });
         },
         onError: () => toast({ title: "Failed to clear rig", variant: "destructive" }),
@@ -277,6 +305,58 @@ export default function ModDashboard() {
                 />
                 <Button variant="destructive" onClick={handleSetAllBalances} disabled={setAllMutation.isPending} data-testid="button-set-all-balance">Apply to all</Button>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Flagged players */}
+        <div>
+          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-1">
+            Flagged — Too Lucky
+          </h2>
+          <p className="text-xs text-muted-foreground mb-4">
+            Players whose win rate is statistically improbable given the odds they played. Outcomes are decided server-side, so this is a review signal — not proof of cheating. Rigged players are expected to appear here.
+          </p>
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            {flaggedLoading && (
+              <div className="p-4 space-y-3">
+                {[1, 2].map(i => <Skeleton key={i} className="h-16 rounded" />)}
+              </div>
+            )}
+            {!flaggedLoading && (!flaggedPlayers || flaggedPlayers.length === 0) && (
+              <div className="p-8 text-center text-muted-foreground text-sm" data-testid="text-no-flagged">
+                No suspicious players. Everyone's luck looks normal. 🎲
+              </div>
+            )}
+            <div className="divide-y divide-border">
+              {flaggedPlayers?.map(f => {
+                const sev = SEVERITY_STYLES[f.severity];
+                return (
+                  <div key={f.id} data-testid={`row-flagged-${f.id}`} className="px-4 py-3">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className={`text-xs font-bold uppercase tracking-wide rounded px-1.5 py-0.5 border ${sev.badge}`} data-testid={`badge-severity-${f.id}`}>
+                        {sev.label}
+                      </span>
+                      <p className="font-medium text-foreground truncate">{f.name}</p>
+                      <span className="text-xs text-muted-foreground">ID #{f.id}</span>
+                      {f.discordUser && (
+                        <span className="text-xs text-blue-400 font-mono">⌨ {f.discordUser}</span>
+                      )}
+                      {f.rigged && (
+                        <span className="text-xs bg-orange-500/20 text-orange-400 border border-orange-500/30 rounded px-1.5 py-0.5 font-mono" data-testid={`badge-rigged-${f.id}`}>
+                          RIGGED — explained
+                        </span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-1 mt-2">
+                      <Stat label="Win rate" value={`${(f.winRate * 100).toFixed(1)}%`} sub={`exp. ${(f.expectedWinRate * 100).toFixed(1)}%`} />
+                      <Stat label="Wins / bets" value={`${f.wins} / ${f.totalBets}`} sub={`exp. ${f.expectedWins.toFixed(1)} wins`} />
+                      <Stat label="Improbability" value={`${f.zScore.toFixed(1)}σ`} sub={f.oddsAgainst} />
+                      <Stat label="Longest streak" value={`${f.longestWinStreak}W`} sub={`net ${f.netProfit >= 0 ? "+" : ""}${f.netProfit.toLocaleString()}`} />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

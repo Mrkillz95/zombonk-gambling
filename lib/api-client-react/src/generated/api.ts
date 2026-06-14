@@ -24,6 +24,7 @@ import type {
   Bet,
   BetActivity,
   CreateRedemptionItemBody,
+  FlaggedPlayer,
   Game,
   GameInput,
   GameUpdate,
@@ -1472,6 +1473,83 @@ export const useModDeletePlayer = <TError = ErrorType<void>,
       > => {
       return useMutation(getModDeletePlayerMutationOptions(options));
     }
+
+export const getModListFlaggedPlayersUrl = () => {
+
+
+
+
+  return `/api/mod/flagged-players`
+}
+
+/**
+ * @summary Players flagged for statistically improbable win patterns
+ */
+export const modListFlaggedPlayers = async ( options?: RequestInit): Promise<FlaggedPlayer[]> => {
+
+  return customFetch<FlaggedPlayer[]>(getModListFlaggedPlayersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getModListFlaggedPlayersQueryKey = () => {
+    return [
+    `/api/mod/flagged-players`
+    ] as const;
+    }
+
+
+export const getModListFlaggedPlayersQueryOptions = <TData = Awaited<ReturnType<typeof modListFlaggedPlayers>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof modListFlaggedPlayers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getModListFlaggedPlayersQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof modListFlaggedPlayers>>> = ({ signal }) => modListFlaggedPlayers({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof modListFlaggedPlayers>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ModListFlaggedPlayersQueryResult = NonNullable<Awaited<ReturnType<typeof modListFlaggedPlayers>>>
+export type ModListFlaggedPlayersQueryError = ErrorType<void>
+
+
+/**
+ * @summary Players flagged for statistically improbable win patterns
+ */
+
+export function useModListFlaggedPlayers<TData = Awaited<ReturnType<typeof modListFlaggedPlayers>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof modListFlaggedPlayers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getModListFlaggedPlayersQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getModGetSettingsUrl = () => {
 

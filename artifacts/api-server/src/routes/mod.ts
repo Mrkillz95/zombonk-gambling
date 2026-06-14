@@ -23,6 +23,7 @@ import {
   ModSetAllBalancesBody,
 } from "@workspace/api-zod";
 import { getStartingBalance, setStartingBalance } from "../lib/settings.js";
+import { computeFlagStats, type BetRow } from "../lib/flagging.js";
 
 const MOD_PASSWORD = process.env.MOD_PASSWORD || "zombonk123";
 
@@ -457,6 +458,87 @@ router.get("/mod/stats", async (req, res): Promise<void> => {
     totalBets: betStats.count,
     totalWagered: parseInt(betStats.total ?? "0", 10),
   });
+});
+
+router.get("/mod/flagged-players", async (req, res): Promise<void> => {
+  if (!checkAuth(req, res)) return;
+
+  // Pull every bet with its game (type/config) and the option it was placed on
+  // (odds / true win %), so we can estimate each bet's expected win probability.
+  const rows = await db
+    .select({
+      playerId: betsTable.playerId,
+      won: betsTable.won,
+      wager: betsTable.wager,
+      payout: betsTable.payout,
+      createdAt: betsTable.createdAt,
+      gameType: gamesTable.type,
+      gameConfig: gamesTable.config,
+      optionOdds: gameOptionsTable.odds,
+      optionTrueWinPct: gameOptionsTable.trueWinPct,
+    })
+    .from(betsTable)
+    .innerJoin(gamesTable, eq(betsTable.gameId, gamesTable.id))
+    .leftJoin(gameOptionsTable, eq(betsTable.optionId, gameOptionsTable.id));
+
+  const byPlayer = new Map<number, BetRow[]>();
+  for (const r of rows) {
+    const oddsNum =
+      r.optionOdds != null ? parseFloat(r.optionOdds) : null;
+    const list = byPlayer.get(r.playerId) ?? [];
+    list.push({
+      won: r.won,
+      wager: r.wager,
+      payout: r.payout,
+      optionOdds: oddsNum != null && Number.isFinite(oddsNum) ? oddsNum : null,
+      optionTrueWinPct: r.optionTrueWinPct ?? null,
+      gameType: r.gameType,
+      gameConfig: (r.gameConfig as Record<string, unknown> | null) ?? null,
+      createdAt: r.createdAt,
+    });
+    byPlayer.set(r.playerId, list);
+  }
+
+  const players = await db.select().from(playersTable);
+  const playerById = new Map(players.map((p) => [p.id, p]));
+
+  const flagged = [];
+  for (const [playerId, bets] of byPlayer) {
+    const player = playerById.get(playerId);
+    if (!player) continue;
+    const stats = computeFlagStats(bets);
+    if (!stats.flagged) continue;
+
+    const rig = player.globalRig as Record<string, unknown> | null;
+    const rigged = !!rig && Object.keys(rig).length > 0;
+
+    flagged.push({
+      id: player.id,
+      name: player.name,
+      discordUser: player.discordUser ?? null,
+      balance: player.balance,
+      ipAddress: player.ipAddress ?? null,
+      totalBets: stats.totalBets,
+      wins: stats.wins,
+      winRate: stats.winRate,
+      expectedWins: stats.expectedWins,
+      expectedWinRate: stats.expectedWinRate,
+      netProfit: stats.netProfit,
+      totalWagered: stats.totalWagered,
+      roi: stats.roi,
+      zScore: stats.zScore,
+      oddsAgainst: stats.oddsAgainst,
+      longestWinStreak: stats.longestWinStreak,
+      severity: stats.severity,
+      rigged,
+      _rank: stats.severityRank,
+    });
+  }
+
+  // Most severe first, then most improbable.
+  flagged.sort((a, b) => b._rank - a._rank || b.zScore - a.zScore);
+
+  res.json(flagged.map(({ _rank, ...rest }) => rest));
 });
 
 export default router;

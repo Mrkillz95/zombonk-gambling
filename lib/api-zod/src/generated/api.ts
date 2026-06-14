@@ -463,6 +463,36 @@ export const ModDeletePlayerHeader = zod.object({
 
 
 /**
+ * @summary Players flagged for statistically improbable win patterns
+ */
+export const ModListFlaggedPlayersHeader = zod.object({
+  "x-mod-password": zod.string()
+})
+
+export const ModListFlaggedPlayersResponseItem = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "discordUser": zod.string().nullish(),
+  "balance": zod.number(),
+  "ipAddress": zod.string().nullish(),
+  "totalBets": zod.number().describe('Number of bets the player has placed'),
+  "wins": zod.number(),
+  "winRate": zod.number().describe('Actual fraction of bets won (0–1)'),
+  "expectedWins": zod.number().describe('Statistically expected number of wins given the odds played'),
+  "expectedWinRate": zod.number().describe('Expected fraction of bets won (0–1)'),
+  "netProfit": zod.number().describe('Total payout minus total wagered (coins)'),
+  "totalWagered": zod.number(),
+  "roi": zod.number().describe('netProfit \/ totalWagered'),
+  "zScore": zod.number().describe('Standard deviations above expected wins'),
+  "oddsAgainst": zod.string().describe('Human-readable improbability, e.g. \"1 in 1.2M\"'),
+  "longestWinStreak": zod.number(),
+  "severity": zod.enum(['watch', 'suspicious', 'impossible']),
+  "rigged": zod.boolean().describe('Whether a mod has set a global rig on this player (explains the luck)')
+})
+export const ModListFlaggedPlayersResponse = zod.array(ModListFlaggedPlayersResponseItem)
+
+
+/**
  * @summary Get mod settings
  */
 export const ModGetSettingsHeader = zod.object({

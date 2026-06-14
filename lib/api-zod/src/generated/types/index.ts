@@ -11,6 +11,8 @@ export * from './bet';
 export * from './betActivity';
 export * from './betDetails';
 export * from './createRedemptionItemBody';
+export * from './flaggedPlayer';
+export * from './flaggedPlayerSeverity';
 export * from './game';
 export * from './gameConfig';
 export * from './gameInput';

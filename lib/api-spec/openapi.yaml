@@ -459,6 +459,29 @@ paths:
         "401":
           description: Unauthorized
 
+  /mod/flagged-players:
+    get:
+      operationId: modListFlaggedPlayers
+      tags: [mod]
+      summary: Players flagged for statistically improbable win patterns
+      parameters:
+        - name: x-mod-password
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Flagged players, most severe first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FlaggedPlayer"
+        "401":
+          description: Unauthorized
+
   /mod/settings:
     get:
       operationId: modGetSettings
@@ -809,6 +832,75 @@ components:
           type: ["string", "null"]
         createdAt:
           type: string
+
+    FlaggedPlayer:
+      type: object
+      required:
+        [
+          id,
+          name,
+          balance,
+          totalBets,
+          wins,
+          winRate,
+          expectedWins,
+          expectedWinRate,
+          netProfit,
+          totalWagered,
+          roi,
+          zScore,
+          oddsAgainst,
+          longestWinStreak,
+          severity,
+          rigged,
+        ]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        discordUser:
+          type: ["string", "null"]
+        balance:
+          type: integer
+        ipAddress:
+          type: ["string", "null"]
+        totalBets:
+          type: integer
+          description: Number of bets the player has placed
+        wins:
+          type: integer
+        winRate:
+          type: number
+          description: Actual fraction of bets won (0–1)
+        expectedWins:
+          type: number
+          description: Statistically expected number of wins given the odds played
+        expectedWinRate:
+          type: number
+          description: Expected fraction of bets won (0–1)
+        netProfit:
+          type: integer
+          description: Total payout minus total wagered (coins)
+        totalWagered:
+          type: integer
+        roi:
+          type: number
+          description: netProfit / totalWagered
+        zScore:
+          type: number
+          description: Standard deviations above expected wins
+        oddsAgainst:
+          type: string
+          description: Human-readable improbability, e.g. "1 in 1.2M"
+        longestWinStreak:
+          type: integer
+        severity:
+          type: string
+          enum: [watch, suspicious, impossible]
+        rigged:
+          type: boolean
+          description: Whether a mod has set a global rig on this player (explains the luck)
 
     RegisterPlayerInput:
       type: object

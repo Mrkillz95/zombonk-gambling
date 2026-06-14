@@ -37,6 +37,47 @@ export interface ModPlayer {
   createdAt: string;
 }
 
+export type FlaggedPlayerSeverity = typeof FlaggedPlayerSeverity[keyof typeof FlaggedPlayerSeverity];
+
+
+export const FlaggedPlayerSeverity = {
+  watch: 'watch',
+  suspicious: 'suspicious',
+  impossible: 'impossible',
+} as const;
+
+export interface FlaggedPlayer {
+  id: number;
+  name: string;
+  /** @nullable */
+  discordUser?: string | null;
+  balance: number;
+  /** @nullable */
+  ipAddress?: string | null;
+  /** Number of bets the player has placed */
+  totalBets: number;
+  wins: number;
+  /** Actual fraction of bets won (0–1) */
+  winRate: number;
+  /** Statistically expected number of wins given the odds played */
+  expectedWins: number;
+  /** Expected fraction of bets won (0–1) */
+  expectedWinRate: number;
+  /** Total payout minus total wagered (coins) */
+  netProfit: number;
+  totalWagered: number;
+  /** netProfit / totalWagered */
+  roi: number;
+  /** Standard deviations above expected wins */
+  zScore: number;
+  /** Human-readable improbability, e.g. "1 in 1.2M" */
+  oddsAgainst: string;
+  longestWinStreak: number;
+  severity: FlaggedPlayerSeverity;
+  /** Whether a mod has set a global rig on this player (explains the luck) */
+  rigged: boolean;
+}
+
 export interface RegisterPlayerInput {
   name: string;
   discordUser?: string;
