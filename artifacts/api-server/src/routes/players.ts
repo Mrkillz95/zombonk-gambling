@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { randomBytes } from "node:crypto";
 import { eq, desc } from "drizzle-orm";
 import { db, playersTable, betsTable, gamesTable } from "@workspace/db";
 import z from "zod/v4";
@@ -29,6 +30,12 @@ const LoginBody = z.object({
   name: z.string().min(1),
   password: z.string().min(1),
 });
+
+// Opaque per-session bearer token. Issued (and rotated) on login/register so
+// money- and identity-affecting actions can verify the caller is who they claim.
+function genSessionToken(): string {
+  return randomBytes(24).toString("hex");
+}
 
 // ── Register ────────────────────────────────────────────────────────────────
 router.post("/players", async (req, res): Promise<void> => {
@@ -68,10 +75,11 @@ router.post("/players", async (req, res): Promise<void> => {
   }
 
   const startingBalance = await getStartingBalance();
+  const sessionToken = genSessionToken();
 
   const [player] = await db
     .insert(playersTable)
-    .values({ name, discordUser: discordUser ?? null, password, ipAddress: ip, balance: startingBalance })
+    .values({ name, discordUser: discordUser ?? null, password, sessionToken, ipAddress: ip, balance: startingBalance })
     .returning();
 
   res.json({
@@ -80,6 +88,7 @@ router.post("/players", async (req, res): Promise<void> => {
     discordUser: player.discordUser,
     balance: player.balance,
     createdAt: player.createdAt.toISOString(),
+    sessionToken,
   });
 });
 
@@ -110,12 +119,11 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   }
 
   const ip = getClientIp(req);
-  if (ip && player.ipAddress !== ip) {
-    await db
-      .update(playersTable)
-      .set({ ipAddress: ip })
-      .where(eq(playersTable.id, player.id));
-  }
+  const sessionToken = genSessionToken();
+  await db
+    .update(playersTable)
+    .set({ sessionToken, ...(ip && player.ipAddress !== ip ? { ipAddress: ip } : {}) })
+    .where(eq(playersTable.id, player.id));
 
   res.json({
     id: player.id,
@@ -123,6 +131,7 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     discordUser: player.discordUser,
     balance: player.balance,
     createdAt: player.createdAt.toISOString(),
+    sessionToken,
   });
 });
 

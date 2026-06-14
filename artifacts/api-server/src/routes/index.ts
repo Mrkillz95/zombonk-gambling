@@ -5,6 +5,7 @@ import gamesRouter from "./games";
 import roundsRouter from "./rounds";
 import modRouter from "./mod";
 import redemptionsRouter from "./redemptions";
+import lobbiesRouter from "./lobbies";
 import { modIpGate } from "../lib/mod-auth.js";
 
 const router: IRouter = Router();
@@ -17,5 +18,6 @@ router.use(roundsRouter);
 router.use("/mod", modIpGate);
 router.use(modRouter);
 router.use(redemptionsRouter);
+router.use(lobbiesRouter);
 
 export default router;

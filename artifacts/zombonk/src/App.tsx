@@ -6,6 +6,8 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Lobby from "@/pages/lobby";
 import GamePage from "@/pages/game";
+import PartyPage from "@/pages/party";
+import PartyRoomPage from "@/pages/party-room";
 import History from "@/pages/history";
 import ModLogin from "@/pages/mod-login";
 import ModDashboard from "@/pages/mod/dashboard";
@@ -29,6 +31,8 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/lobby" component={Lobby} />
       <Route path="/game/:id" component={GamePage} />
+      <Route path="/party" component={PartyPage} />
+      <Route path="/party/:id" component={PartyRoomPage} />
       <Route path="/history" component={History} />
       <Route path="/mod" component={ModLogin} />
       <Route path="/mod/dashboard">

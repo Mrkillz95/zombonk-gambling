@@ -15,6 +15,8 @@ tags:
     description: Gambling game operations
   - name: mod
     description: Moderator operations
+  - name: lobbies
+    description: Multiplayer lobby and live table operations
 paths:
   /healthz:
     get:
@@ -890,6 +892,232 @@ paths:
         "401":
           description: Unauthorized
 
+  /lobbies:
+    post:
+      operationId: createLobby
+      tags: [lobbies]
+      summary: Create a new multiplayer lobby
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLobbyInput"
+      responses:
+        "200":
+          description: Created lobby state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LobbyState"
+        "400":
+          description: Bad request
+
+  /lobbies/join:
+    post:
+      operationId: joinLobby
+      tags: [lobbies]
+      summary: Join a lobby by code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinLobbyInput"
+      responses:
+        "200":
+          description: Lobby state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LobbyState"
+        "404":
+          description: Lobby not found
+
+  /lobbies/active:
+    get:
+      operationId: getActiveLobby
+      tags: [lobbies]
+      summary: Get the active lobby a player currently belongs to (if any)
+      parameters:
+        - name: playerId
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Lobby state or null
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/LobbyState"
+                  - type: "null"
+
+  /lobbies/{id}:
+    get:
+      operationId: getLobby
+      tags: [lobbies]
+      summary: Get full lobby state
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Lobby state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LobbyState"
+        "404":
+          description: Not found
+
+  /lobbies/{id}/leave:
+    post:
+      operationId: leaveLobby
+      tags: [lobbies]
+      summary: Leave a lobby (host departure migrates or closes the lobby)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LobbyMemberActionInput"
+      responses:
+        "200":
+          description: Updated lobby state or null if closed
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/LobbyState"
+                  - type: "null"
+        "404":
+          description: Not found
+
+  /lobbies/{id}/chat:
+    post:
+      operationId: sendLobbyChat
+      tags: [lobbies]
+      summary: Send a chat message to the lobby
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendChatInput"
+      responses:
+        "200":
+          description: Created message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LobbyMessageView"
+        "400":
+          description: Bad request
+
+  /lobbies/{id}/transfer:
+    post:
+      operationId: transferCoins
+      tags: [lobbies]
+      summary: Transfer virtual coins to another lobby member
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransferInput"
+      responses:
+        "200":
+          description: Transfer result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferResult"
+        "400":
+          description: Bad request
+
+  /lobbies/{id}/rounds:
+    post:
+      operationId: startLobbyRound
+      tags: [lobbies]
+      summary: Start a synchronized live round for the lobby
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartRoundInput"
+      responses:
+        "200":
+          description: Started round
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LobbyRoundView"
+        "400":
+          description: Bad request
+
+  /lobbies/{id}/rounds/{roundId}/bet:
+    post:
+      operationId: placeRoundBet
+      tags: [lobbies]
+      summary: Place a bet in the current betting window of a live round
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: roundId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlaceRoundBetInput"
+      responses:
+        "200":
+          description: Placed bet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LobbyRoundBetView"
+        "400":
+          description: Bad request
+
 components:
   schemas:
     HealthStatus:
@@ -914,6 +1142,9 @@ components:
           type: integer
         createdAt:
           type: string
+        sessionToken:
+          type: string
+          description: Bearer token issued on login/register; present only on auth responses, used to authorize money- and identity-affecting actions.
 
     ModPlayer:
       type: object
@@ -1485,3 +1716,226 @@ components:
           enum: [fulfilled, denied]
         note:
           type: string
+
+    LobbyView:
+      type: object
+      required: [id, code, name, hostId, status, createdAt]
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        name:
+          type: string
+        hostId:
+          type: integer
+        status:
+          type: string
+          enum: [open, closed]
+        createdAt:
+          type: string
+
+    LobbyMemberView:
+      type: object
+      required: [playerId, name, balance, isHost, online, joinedAt]
+      properties:
+        playerId:
+          type: integer
+        name:
+          type: string
+        balance:
+          type: integer
+        isHost:
+          type: boolean
+        online:
+          type: boolean
+        joinedAt:
+          type: string
+
+    LobbyMessageView:
+      type: object
+      required: [id, playerId, playerName, body, createdAt]
+      properties:
+        id:
+          type: integer
+        playerId:
+          type: integer
+        playerName:
+          type: string
+        body:
+          type: string
+        createdAt:
+          type: string
+
+    LobbyTransferView:
+      type: object
+      required: [id, fromPlayerId, fromName, toPlayerId, toName, amount, createdAt]
+      properties:
+        id:
+          type: integer
+        fromPlayerId:
+          type: integer
+        fromName:
+          type: string
+        toPlayerId:
+          type: integer
+        toName:
+          type: string
+        amount:
+          type: integer
+        createdAt:
+          type: string
+
+    LobbyRoundBetView:
+      type: object
+      required: [playerId, playerName, wager, won, payout]
+      properties:
+        playerId:
+          type: integer
+        playerName:
+          type: string
+        optionId:
+          type: ["integer", "null"]
+        pick:
+          type: ["string", "null"]
+        wager:
+          type: integer
+        won:
+          type: boolean
+        payout:
+          type: integer
+
+    LobbyRoundView:
+      type: object
+      required: [id, gameId, gameType, gameTitle, status, bettingEndsAt, createdAt, bets]
+      properties:
+        id:
+          type: integer
+        gameId:
+          type: integer
+        gameType:
+          type: string
+        gameTitle:
+          type: string
+        status:
+          type: string
+          enum: [betting, resolved, cancelled]
+        bettingEndsAt:
+          type: string
+        result:
+          type: ["object", "null"]
+        createdAt:
+          type: string
+        resolvedAt:
+          type: ["string", "null"]
+        options:
+          type: array
+          items:
+            $ref: "#/components/schemas/GameOption"
+        config:
+          type: object
+        bets:
+          type: array
+          items:
+            $ref: "#/components/schemas/LobbyRoundBetView"
+
+    LobbyState:
+      type: object
+      required: [lobby, members, messages, transfers]
+      properties:
+        lobby:
+          $ref: "#/components/schemas/LobbyView"
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/LobbyMemberView"
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/LobbyMessageView"
+        transfers:
+          type: array
+          items:
+            $ref: "#/components/schemas/LobbyTransferView"
+        currentRound:
+          oneOf:
+            - $ref: "#/components/schemas/LobbyRoundView"
+            - type: "null"
+
+    CreateLobbyInput:
+      type: object
+      required: [hostId, name]
+      properties:
+        hostId:
+          type: integer
+        name:
+          type: string
+
+    JoinLobbyInput:
+      type: object
+      required: [playerId, code]
+      properties:
+        playerId:
+          type: integer
+        code:
+          type: string
+
+    LobbyMemberActionInput:
+      type: object
+      required: [playerId]
+      properties:
+        playerId:
+          type: integer
+
+    SendChatInput:
+      type: object
+      required: [playerId, body]
+      properties:
+        playerId:
+          type: integer
+        body:
+          type: string
+
+    TransferInput:
+      type: object
+      required: [fromPlayerId, toPlayerId, amount]
+      properties:
+        fromPlayerId:
+          type: integer
+        toPlayerId:
+          type: integer
+        amount:
+          type: integer
+
+    TransferResult:
+      type: object
+      required: [fromBalance, toBalance, transfer]
+      properties:
+        fromBalance:
+          type: integer
+        toBalance:
+          type: integer
+        transfer:
+          $ref: "#/components/schemas/LobbyTransferView"
+
+    StartRoundInput:
+      type: object
+      required: [playerId, gameId]
+      properties:
+        playerId:
+          type: integer
+        gameId:
+          type: integer
+
+    PlaceRoundBetInput:
+      type: object
+      required: [playerId, wager]
+      properties:
+        playerId:
+          type: integer
+        wager:
+          type: integer
+        optionId:
+          type: ["integer", "null"]
+        pick:
+          type: ["string", "null"]

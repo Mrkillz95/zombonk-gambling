@@ -13,4 +13,6 @@ export interface Player {
   discordUser?: string | null;
   balance: number;
   createdAt: string;
+  /** Bearer token issued on login/register; present only on auth responses, used to authorize money- and identity-affecting actions. */
+  sessionToken?: string;
 }

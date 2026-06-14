@@ -23,15 +23,23 @@ import type {
   BalanceUpdate,
   Bet,
   BetActivity,
+  CreateLobbyInput,
   CreateRedemptionItemBody,
   FlaggedPlayer,
   Game,
   GameInput,
   GameUpdate,
+  GetActiveLobbyParams,
   GetRoundParams,
   GlobalRigInput,
   HealthStatus,
+  JoinLobbyInput,
   ListGamesParams,
+  LobbyMemberActionInput,
+  LobbyMessageView,
+  LobbyRoundBetView,
+  LobbyRoundView,
+  LobbyState,
   LoginPlayerInput,
   ModAuthInput,
   ModAuthResult,
@@ -41,6 +49,7 @@ import type {
   ModSettings,
   ModSettingsUpdate,
   ModStats,
+  PlaceRoundBetInput,
   PlayInput,
   PlayResult,
   Player,
@@ -54,8 +63,12 @@ import type {
   RoundStartInput,
   RoundState,
   SeedResult,
+  SendChatInput,
   SetAllBalance,
   SetAllBalanceResult,
+  StartRoundInput,
+  TransferInput,
+  TransferResult,
   UpdateRedemptionItemBody,
   UpdateRedemptionRequestBody
 } from './api.schemas';
@@ -2748,5 +2761,670 @@ export const useModUpdateRedemptionRequest = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getModUpdateRedemptionRequestMutationOptions(options));
+    }
+
+export const getCreateLobbyUrl = () => {
+
+
+
+
+  return `/api/lobbies`
+}
+
+/**
+ * @summary Create a new multiplayer lobby
+ */
+export const createLobby = async (createLobbyInput: CreateLobbyInput, options?: RequestInit): Promise<LobbyState> => {
+
+  return customFetch<LobbyState>(getCreateLobbyUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createLobbyInput,)
+  }
+);}
+
+
+
+
+export const getCreateLobbyMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLobby>>, TError,{data: BodyType<CreateLobbyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createLobby>>, TError,{data: BodyType<CreateLobbyInput>}, TContext> => {
+
+const mutationKey = ['createLobby'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createLobby>>, {data: BodyType<CreateLobbyInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createLobby(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateLobbyMutationResult = NonNullable<Awaited<ReturnType<typeof createLobby>>>
+    export type CreateLobbyMutationBody = BodyType<CreateLobbyInput>
+    export type CreateLobbyMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a new multiplayer lobby
+ */
+export const useCreateLobby = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLobby>>, TError,{data: BodyType<CreateLobbyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createLobby>>,
+        TError,
+        {data: BodyType<CreateLobbyInput>},
+        TContext
+      > => {
+      return useMutation(getCreateLobbyMutationOptions(options));
+    }
+
+export const getJoinLobbyUrl = () => {
+
+
+
+
+  return `/api/lobbies/join`
+}
+
+/**
+ * @summary Join a lobby by code
+ */
+export const joinLobby = async (joinLobbyInput: JoinLobbyInput, options?: RequestInit): Promise<LobbyState> => {
+
+  return customFetch<LobbyState>(getJoinLobbyUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      joinLobbyInput,)
+  }
+);}
+
+
+
+
+export const getJoinLobbyMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof joinLobby>>, TError,{data: BodyType<JoinLobbyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof joinLobby>>, TError,{data: BodyType<JoinLobbyInput>}, TContext> => {
+
+const mutationKey = ['joinLobby'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof joinLobby>>, {data: BodyType<JoinLobbyInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  joinLobby(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type JoinLobbyMutationResult = NonNullable<Awaited<ReturnType<typeof joinLobby>>>
+    export type JoinLobbyMutationBody = BodyType<JoinLobbyInput>
+    export type JoinLobbyMutationError = ErrorType<void>
+
+    /**
+ * @summary Join a lobby by code
+ */
+export const useJoinLobby = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof joinLobby>>, TError,{data: BodyType<JoinLobbyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof joinLobby>>,
+        TError,
+        {data: BodyType<JoinLobbyInput>},
+        TContext
+      > => {
+      return useMutation(getJoinLobbyMutationOptions(options));
+    }
+
+export const getGetActiveLobbyUrl = (params: GetActiveLobbyParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/lobbies/active?${stringifiedParams}` : `/api/lobbies/active`
+}
+
+/**
+ * @summary Get the active lobby a player currently belongs to (if any)
+ */
+export const getActiveLobby = async (params: GetActiveLobbyParams, options?: RequestInit): Promise<LobbyState | null> => {
+
+  return customFetch<LobbyState | null>(getGetActiveLobbyUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetActiveLobbyQueryKey = (params?: GetActiveLobbyParams,) => {
+    return [
+    `/api/lobbies/active`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetActiveLobbyQueryOptions = <TData = Awaited<ReturnType<typeof getActiveLobby>>, TError = ErrorType<unknown>>(params: GetActiveLobbyParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getActiveLobby>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetActiveLobbyQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getActiveLobby>>> = ({ signal }) => getActiveLobby(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getActiveLobby>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetActiveLobbyQueryResult = NonNullable<Awaited<ReturnType<typeof getActiveLobby>>>
+export type GetActiveLobbyQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get the active lobby a player currently belongs to (if any)
+ */
+
+export function useGetActiveLobby<TData = Awaited<ReturnType<typeof getActiveLobby>>, TError = ErrorType<unknown>>(
+ params: GetActiveLobbyParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getActiveLobby>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetActiveLobbyQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetLobbyUrl = (id: number,) => {
+
+
+
+
+  return `/api/lobbies/${id}`
+}
+
+/**
+ * @summary Get full lobby state
+ */
+export const getLobby = async (id: number, options?: RequestInit): Promise<LobbyState> => {
+
+  return customFetch<LobbyState>(getGetLobbyUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetLobbyQueryKey = (id: number,) => {
+    return [
+    `/api/lobbies/${id}`
+    ] as const;
+    }
+
+
+export const getGetLobbyQueryOptions = <TData = Awaited<ReturnType<typeof getLobby>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLobby>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetLobbyQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLobby>>> = ({ signal }) => getLobby(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLobby>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetLobbyQueryResult = NonNullable<Awaited<ReturnType<typeof getLobby>>>
+export type GetLobbyQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get full lobby state
+ */
+
+export function useGetLobby<TData = Awaited<ReturnType<typeof getLobby>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLobby>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetLobbyQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getLeaveLobbyUrl = (id: number,) => {
+
+
+
+
+  return `/api/lobbies/${id}/leave`
+}
+
+/**
+ * @summary Leave a lobby (host departure migrates or closes the lobby)
+ */
+export const leaveLobby = async (id: number,
+    lobbyMemberActionInput: LobbyMemberActionInput, options?: RequestInit): Promise<LobbyState | null> => {
+
+  return customFetch<LobbyState | null>(getLeaveLobbyUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      lobbyMemberActionInput,)
+  }
+);}
+
+
+
+
+export const getLeaveLobbyMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveLobby>>, TError,{id: number;data: BodyType<LobbyMemberActionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof leaveLobby>>, TError,{id: number;data: BodyType<LobbyMemberActionInput>}, TContext> => {
+
+const mutationKey = ['leaveLobby'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof leaveLobby>>, {id: number;data: BodyType<LobbyMemberActionInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  leaveLobby(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LeaveLobbyMutationResult = NonNullable<Awaited<ReturnType<typeof leaveLobby>>>
+    export type LeaveLobbyMutationBody = BodyType<LobbyMemberActionInput>
+    export type LeaveLobbyMutationError = ErrorType<void>
+
+    /**
+ * @summary Leave a lobby (host departure migrates or closes the lobby)
+ */
+export const useLeaveLobby = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveLobby>>, TError,{id: number;data: BodyType<LobbyMemberActionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof leaveLobby>>,
+        TError,
+        {id: number;data: BodyType<LobbyMemberActionInput>},
+        TContext
+      > => {
+      return useMutation(getLeaveLobbyMutationOptions(options));
+    }
+
+export const getSendLobbyChatUrl = (id: number,) => {
+
+
+
+
+  return `/api/lobbies/${id}/chat`
+}
+
+/**
+ * @summary Send a chat message to the lobby
+ */
+export const sendLobbyChat = async (id: number,
+    sendChatInput: SendChatInput, options?: RequestInit): Promise<LobbyMessageView> => {
+
+  return customFetch<LobbyMessageView>(getSendLobbyChatUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      sendChatInput,)
+  }
+);}
+
+
+
+
+export const getSendLobbyChatMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendLobbyChat>>, TError,{id: number;data: BodyType<SendChatInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendLobbyChat>>, TError,{id: number;data: BodyType<SendChatInput>}, TContext> => {
+
+const mutationKey = ['sendLobbyChat'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendLobbyChat>>, {id: number;data: BodyType<SendChatInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  sendLobbyChat(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendLobbyChatMutationResult = NonNullable<Awaited<ReturnType<typeof sendLobbyChat>>>
+    export type SendLobbyChatMutationBody = BodyType<SendChatInput>
+    export type SendLobbyChatMutationError = ErrorType<void>
+
+    /**
+ * @summary Send a chat message to the lobby
+ */
+export const useSendLobbyChat = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendLobbyChat>>, TError,{id: number;data: BodyType<SendChatInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof sendLobbyChat>>,
+        TError,
+        {id: number;data: BodyType<SendChatInput>},
+        TContext
+      > => {
+      return useMutation(getSendLobbyChatMutationOptions(options));
+    }
+
+export const getTransferCoinsUrl = (id: number,) => {
+
+
+
+
+  return `/api/lobbies/${id}/transfer`
+}
+
+/**
+ * @summary Transfer virtual coins to another lobby member
+ */
+export const transferCoins = async (id: number,
+    transferInput: TransferInput, options?: RequestInit): Promise<TransferResult> => {
+
+  return customFetch<TransferResult>(getTransferCoinsUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      transferInput,)
+  }
+);}
+
+
+
+
+export const getTransferCoinsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof transferCoins>>, TError,{id: number;data: BodyType<TransferInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof transferCoins>>, TError,{id: number;data: BodyType<TransferInput>}, TContext> => {
+
+const mutationKey = ['transferCoins'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof transferCoins>>, {id: number;data: BodyType<TransferInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  transferCoins(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TransferCoinsMutationResult = NonNullable<Awaited<ReturnType<typeof transferCoins>>>
+    export type TransferCoinsMutationBody = BodyType<TransferInput>
+    export type TransferCoinsMutationError = ErrorType<void>
+
+    /**
+ * @summary Transfer virtual coins to another lobby member
+ */
+export const useTransferCoins = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof transferCoins>>, TError,{id: number;data: BodyType<TransferInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof transferCoins>>,
+        TError,
+        {id: number;data: BodyType<TransferInput>},
+        TContext
+      > => {
+      return useMutation(getTransferCoinsMutationOptions(options));
+    }
+
+export const getStartLobbyRoundUrl = (id: number,) => {
+
+
+
+
+  return `/api/lobbies/${id}/rounds`
+}
+
+/**
+ * @summary Start a synchronized live round for the lobby
+ */
+export const startLobbyRound = async (id: number,
+    startRoundInput: StartRoundInput, options?: RequestInit): Promise<LobbyRoundView> => {
+
+  return customFetch<LobbyRoundView>(getStartLobbyRoundUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      startRoundInput,)
+  }
+);}
+
+
+
+
+export const getStartLobbyRoundMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startLobbyRound>>, TError,{id: number;data: BodyType<StartRoundInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof startLobbyRound>>, TError,{id: number;data: BodyType<StartRoundInput>}, TContext> => {
+
+const mutationKey = ['startLobbyRound'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof startLobbyRound>>, {id: number;data: BodyType<StartRoundInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  startLobbyRound(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StartLobbyRoundMutationResult = NonNullable<Awaited<ReturnType<typeof startLobbyRound>>>
+    export type StartLobbyRoundMutationBody = BodyType<StartRoundInput>
+    export type StartLobbyRoundMutationError = ErrorType<void>
+
+    /**
+ * @summary Start a synchronized live round for the lobby
+ */
+export const useStartLobbyRound = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startLobbyRound>>, TError,{id: number;data: BodyType<StartRoundInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof startLobbyRound>>,
+        TError,
+        {id: number;data: BodyType<StartRoundInput>},
+        TContext
+      > => {
+      return useMutation(getStartLobbyRoundMutationOptions(options));
+    }
+
+export const getPlaceRoundBetUrl = (id: number,
+    roundId: number,) => {
+
+
+
+
+  return `/api/lobbies/${id}/rounds/${roundId}/bet`
+}
+
+/**
+ * @summary Place a bet in the current betting window of a live round
+ */
+export const placeRoundBet = async (id: number,
+    roundId: number,
+    placeRoundBetInput: PlaceRoundBetInput, options?: RequestInit): Promise<LobbyRoundBetView> => {
+
+  return customFetch<LobbyRoundBetView>(getPlaceRoundBetUrl(id,roundId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      placeRoundBetInput,)
+  }
+);}
+
+
+
+
+export const getPlaceRoundBetMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof placeRoundBet>>, TError,{id: number;roundId: number;data: BodyType<PlaceRoundBetInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof placeRoundBet>>, TError,{id: number;roundId: number;data: BodyType<PlaceRoundBetInput>}, TContext> => {
+
+const mutationKey = ['placeRoundBet'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof placeRoundBet>>, {id: number;roundId: number;data: BodyType<PlaceRoundBetInput>}> = (props) => {
+          const {id,roundId,data} = props ?? {};
+
+          return  placeRoundBet(id,roundId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PlaceRoundBetMutationResult = NonNullable<Awaited<ReturnType<typeof placeRoundBet>>>
+    export type PlaceRoundBetMutationBody = BodyType<PlaceRoundBetInput>
+    export type PlaceRoundBetMutationError = ErrorType<void>
+
+    /**
+ * @summary Place a bet in the current betting window of a live round
+ */
+export const usePlaceRoundBet = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof placeRoundBet>>, TError,{id: number;roundId: number;data: BodyType<PlaceRoundBetInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof placeRoundBet>>,
+        TError,
+        {id: number;roundId: number;data: BodyType<PlaceRoundBetInput>},
+        TContext
+      > => {
+      return useMutation(getPlaceRoundBetMutationOptions(options));
     }
 

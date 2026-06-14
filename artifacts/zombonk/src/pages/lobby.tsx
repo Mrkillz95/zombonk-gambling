@@ -65,6 +65,9 @@ export default function Lobby() {
                 </Badge>
               </div>
             )}
+            <Link href="/party">
+              <Button variant="ghost" size="sm" data-testid="link-party">🎉 Party</Button>
+            </Link>
             <Link href="/redeem">
               <Button variant="ghost" size="sm" data-testid="link-redeem">🎁 Redeem</Button>
             </Link>

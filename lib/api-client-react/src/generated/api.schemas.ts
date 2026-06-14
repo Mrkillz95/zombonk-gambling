@@ -16,6 +16,8 @@ export interface Player {
   discordUser?: string | null;
   balance: number;
   createdAt: string;
+  /** Bearer token issued on login/register; present only on auth responses, used to authorize money- and identity-affecting actions. */
+  sessionToken?: string;
 }
 
 /**
@@ -524,6 +526,148 @@ export interface UpdateRedemptionRequestBody {
   note?: string;
 }
 
+export type LobbyViewStatus = typeof LobbyViewStatus[keyof typeof LobbyViewStatus];
+
+
+export const LobbyViewStatus = {
+  open: 'open',
+  closed: 'closed',
+} as const;
+
+export interface LobbyView {
+  id: number;
+  code: string;
+  name: string;
+  hostId: number;
+  status: LobbyViewStatus;
+  createdAt: string;
+}
+
+export interface LobbyMemberView {
+  playerId: number;
+  name: string;
+  balance: number;
+  isHost: boolean;
+  online: boolean;
+  joinedAt: string;
+}
+
+export interface LobbyMessageView {
+  id: number;
+  playerId: number;
+  playerName: string;
+  body: string;
+  createdAt: string;
+}
+
+export interface LobbyTransferView {
+  id: number;
+  fromPlayerId: number;
+  fromName: string;
+  toPlayerId: number;
+  toName: string;
+  amount: number;
+  createdAt: string;
+}
+
+export interface LobbyRoundBetView {
+  playerId: number;
+  playerName: string;
+  /** @nullable */
+  optionId?: number | null;
+  /** @nullable */
+  pick?: string | null;
+  wager: number;
+  won: boolean;
+  payout: number;
+}
+
+export type LobbyRoundViewStatus = typeof LobbyRoundViewStatus[keyof typeof LobbyRoundViewStatus];
+
+
+export const LobbyRoundViewStatus = {
+  betting: 'betting',
+  resolved: 'resolved',
+  cancelled: 'cancelled',
+} as const;
+
+/**
+ * @nullable
+ */
+export type LobbyRoundViewResult = { [key: string]: unknown } | null;
+
+export type LobbyRoundViewConfig = { [key: string]: unknown };
+
+export interface LobbyRoundView {
+  id: number;
+  gameId: number;
+  gameType: string;
+  gameTitle: string;
+  status: LobbyRoundViewStatus;
+  bettingEndsAt: string;
+  /** @nullable */
+  result?: LobbyRoundViewResult;
+  createdAt: string;
+  /** @nullable */
+  resolvedAt?: string | null;
+  options?: GameOption[];
+  config?: LobbyRoundViewConfig;
+  bets: LobbyRoundBetView[];
+}
+
+export interface LobbyState {
+  lobby: LobbyView;
+  members: LobbyMemberView[];
+  messages: LobbyMessageView[];
+  transfers: LobbyTransferView[];
+  currentRound?: LobbyRoundView | null;
+}
+
+export interface CreateLobbyInput {
+  hostId: number;
+  name: string;
+}
+
+export interface JoinLobbyInput {
+  playerId: number;
+  code: string;
+}
+
+export interface LobbyMemberActionInput {
+  playerId: number;
+}
+
+export interface SendChatInput {
+  playerId: number;
+  body: string;
+}
+
+export interface TransferInput {
+  fromPlayerId: number;
+  toPlayerId: number;
+  amount: number;
+}
+
+export interface TransferResult {
+  fromBalance: number;
+  toBalance: number;
+  transfer: LobbyTransferView;
+}
+
+export interface StartRoundInput {
+  playerId: number;
+  gameId: number;
+}
+
+export interface PlaceRoundBetInput {
+  playerId: number;
+  wager: number;
+  /** @nullable */
+  optionId?: number | null;
+  /** @nullable */
+  pick?: string | null;
+}
+
 export type ListGamesParams = {
 status?: string;
 };
@@ -538,5 +682,9 @@ export type ModDeleteRedemptionItem200 = {
 
 export type ModListRedemptionRequestsParams = {
 status?: string;
+};
+
+export type GetActiveLobbyParams = {
+playerId: number;
 };
 

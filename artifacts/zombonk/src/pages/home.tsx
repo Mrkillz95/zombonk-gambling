@@ -4,7 +4,7 @@ import { useRegisterPlayer, useLoginPlayer, getGetPlayerQueryKey } from "@worksp
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getStoredPlayer, setStoredPlayer, clearStoredPlayer } from "@/lib/player-store";
+import { getStoredPlayer, setStoredPlayer, setStoredToken, clearStoredPlayer } from "@/lib/player-store";
 import { useToast } from "@/hooks/use-toast";
 
 type Mode = "register" | "login";
@@ -38,6 +38,7 @@ export default function Home() {
       {
         onSuccess: (player) => {
           setStoredPlayer({ id: player.id, name: player.name });
+          if (player.sessionToken) setStoredToken(player.sessionToken);
           queryClient.invalidateQueries({ queryKey: getGetPlayerQueryKey(player.id) });
           setLocation("/lobby");
         },
@@ -57,6 +58,7 @@ export default function Home() {
       {
         onSuccess: (player) => {
           setStoredPlayer({ id: player.id, name: player.name });
+          if (player.sessionToken) setStoredToken(player.sessionToken);
           queryClient.invalidateQueries({ queryKey: getGetPlayerQueryKey(player.id) });
           setLocation("/lobby");
         },

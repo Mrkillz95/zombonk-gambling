@@ -7,6 +7,7 @@ export const playersTable = pgTable("players", {
   name: text("name").notNull().unique(),
   discordUser: text("discord_user"),
   password: text("password").notNull().default(""),
+  sessionToken: text("session_token"),
   balance: integer("balance").notNull().default(0),
   globalRig: jsonb("global_rig"),
   ipAddress: text("ip_address"),

@@ -1,1 +1,14 @@
 - [Interactive game rounds (Zombonk)](interactive-rounds.md) — honest-CSPRNG-vs-rig tradeoff; transactional escrow/settle integrity invariants; orval path+query barrel gotcha.
+- [Client IP behind Replit proxy](replit-client-ip.md) — public edge overrides client XFF with real IP (leftmost); trusting leftmost XFF is spoof-safe for real traffic, localhost:80 is not.
+- [Rig visual consistency](rig-visual-consistency.md) — server must regenerate game visuals to match rigged won; slots/scratch_card/crash/plinko recompute win client-side.
+- [Mod game-edit contract](mod-game-edit-contract.md) — request schemas must accept null where responses emit null; guard empty Drizzle updates.
+- [Partial returns](partial-returns.md) — payout is independent of won; UI must show won=false & payout>0 as a partial return, not a loss.
+- [Rigged win payout multiplier](rig-win-payout-multiplier.md) — forced wins must pay the player's natural selection odds, not a flat 2x; explicit non-default rig mult overrides.
+- [Dev DB holds real data](dev-db-shared-real-data.md) — dev Postgres has the user's real players/balances; snapshot rows before destructive/bulk tests.
+- [Mod auth gating](mod-auth-gate.md) — server checkAuth is the real control; client ModGuard must verify password via /mod/auth, not just check localStorage presence; IP allowlist enforced centrally by modIpGate.
+- [CSPRNG for randomness](csprng-randomness.md) — never use Math.random; use the package-local secureRandom() drop-ins (server crypto.randomBytes, client getRandomValues) for all outcomes.
+- [Too-lucky flagging](too-lucky-flagging.md) — improbable-win detection: bias win-prob estimates high (under-flag), keep streak override probability-based not length, always show rigged flag.
+- [Zombonk game architecture](zombonk-game-architecture.md) — game type decoupling, one-shot server-authoritative play (playerId in body), rig/reconcile coupling, seed script, removal safety.
+- [Live party rounds](live-party-rounds.md) — only crash/blackjack/option-games can host a shared round (else null winner); betting window must fit multiple humans (30s, not 15s).
+- [Multiplayer e2e in dev](multiplayer-e2e-in-dev.md) — one-account-per-IP blocks creating 2 accounts; log in as seeded players (plaintext pw) in 2 browser contexts instead.
+- [Lobby action authz](lobby-action-authz.md) — cross-account lobby writes need a bearer session token bound to the caller; option-game bet UI must key off round.options, not a hardcoded type list.

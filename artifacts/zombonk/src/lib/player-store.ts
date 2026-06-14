@@ -1,4 +1,5 @@
 const PLAYER_KEY = "zombonk_player";
+const TOKEN_KEY = "zombonk_token";
 const MOD_KEY = "zombonk_mod_password";
 
 export interface StoredPlayer {
@@ -22,6 +23,15 @@ export function setStoredPlayer(player: StoredPlayer): void {
 
 export function clearStoredPlayer(): void {
   localStorage.removeItem(PLAYER_KEY);
+  localStorage.removeItem(TOKEN_KEY);
+}
+
+export function getStoredToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function setStoredToken(token: string): void {
+  localStorage.setItem(TOKEN_KEY, token);
 }
 
 export function getModPassword(): string | null {

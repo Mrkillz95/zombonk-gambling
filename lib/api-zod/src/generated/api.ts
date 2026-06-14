@@ -30,7 +30,8 @@ export const RegisterPlayerResponse = zod.object({
   "name": zod.string(),
   "discordUser": zod.string().nullish(),
   "balance": zod.number(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "sessionToken": zod.string().optional().describe('Bearer token issued on login\/register; present only on auth responses, used to authorize money- and identity-affecting actions.')
 })
 
 
@@ -47,7 +48,8 @@ export const LoginPlayerResponse = zod.object({
   "name": zod.string(),
   "discordUser": zod.string().nullish(),
   "balance": zod.number(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "sessionToken": zod.string().optional().describe('Bearer token issued on login\/register; present only on auth responses, used to authorize money- and identity-affecting actions.')
 })
 
 
@@ -63,7 +65,8 @@ export const GetPlayerResponse = zod.object({
   "name": zod.string(),
   "discordUser": zod.string().nullish(),
   "balance": zod.number(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "sessionToken": zod.string().optional().describe('Bearer token issued on login\/register; present only on auth responses, used to authorize money- and identity-affecting actions.')
 })
 
 
@@ -540,7 +543,8 @@ export const ModUpdatePlayerBalanceResponse = zod.object({
   "name": zod.string(),
   "discordUser": zod.string().nullish(),
   "balance": zod.number(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "sessionToken": zod.string().optional().describe('Bearer token issued on login\/register; present only on auth responses, used to authorize money- and identity-affecting actions.')
 })
 
 
@@ -846,6 +850,538 @@ export const ModUpdateRedemptionRequestResponse = zod.object({
   "itemName": zod.string().nullish(),
   "itemDescription": zod.string().nullish(),
   "itemCost": zod.number().nullish()
+})
+
+
+/**
+ * @summary Create a new multiplayer lobby
+ */
+export const CreateLobbyBody = zod.object({
+  "hostId": zod.number(),
+  "name": zod.string()
+})
+
+export const CreateLobbyResponse = zod.object({
+  "lobby": zod.object({
+  "id": zod.number(),
+  "code": zod.string(),
+  "name": zod.string(),
+  "hostId": zod.number(),
+  "status": zod.enum(['open', 'closed']),
+  "createdAt": zod.string()
+}),
+  "members": zod.array(zod.object({
+  "playerId": zod.number(),
+  "name": zod.string(),
+  "balance": zod.number(),
+  "isHost": zod.boolean(),
+  "online": zod.boolean(),
+  "joinedAt": zod.string()
+})),
+  "messages": zod.array(zod.object({
+  "id": zod.number(),
+  "playerId": zod.number(),
+  "playerName": zod.string(),
+  "body": zod.string(),
+  "createdAt": zod.string()
+})),
+  "transfers": zod.array(zod.object({
+  "id": zod.number(),
+  "fromPlayerId": zod.number(),
+  "fromName": zod.string(),
+  "toPlayerId": zod.number(),
+  "toName": zod.string(),
+  "amount": zod.number(),
+  "createdAt": zod.string()
+})),
+  "currentRound": zod.union([zod.object({
+  "id": zod.number(),
+  "gameId": zod.number(),
+  "gameType": zod.string(),
+  "gameTitle": zod.string(),
+  "status": zod.enum(['betting', 'resolved', 'cancelled']),
+  "bettingEndsAt": zod.string(),
+  "result": zod.object({
+
+}).passthrough().nullish(),
+  "createdAt": zod.string(),
+  "resolvedAt": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.number(),
+  "gameId": zod.number(),
+  "label": zod.string(),
+  "odds": zod.number(),
+  "emoji": zod.string().nullish(),
+  "weight": zod.number().nullish(),
+  "isWinner": zod.boolean().nullish(),
+  "imageUrl": zod.string().nullish(),
+  "displayOdds": zod.string().nullish(),
+  "trueWinPct": zod.number().nullish()
+})).optional(),
+  "config": zod.object({
+
+}).passthrough().optional(),
+  "bets": zod.array(zod.object({
+  "playerId": zod.number(),
+  "playerName": zod.string(),
+  "optionId": zod.number().nullish(),
+  "pick": zod.string().nullish(),
+  "wager": zod.number(),
+  "won": zod.boolean(),
+  "payout": zod.number()
+}))
+}),zod.null()]).optional()
+})
+
+
+/**
+ * @summary Join a lobby by code
+ */
+export const JoinLobbyBody = zod.object({
+  "playerId": zod.number(),
+  "code": zod.string()
+})
+
+export const JoinLobbyResponse = zod.object({
+  "lobby": zod.object({
+  "id": zod.number(),
+  "code": zod.string(),
+  "name": zod.string(),
+  "hostId": zod.number(),
+  "status": zod.enum(['open', 'closed']),
+  "createdAt": zod.string()
+}),
+  "members": zod.array(zod.object({
+  "playerId": zod.number(),
+  "name": zod.string(),
+  "balance": zod.number(),
+  "isHost": zod.boolean(),
+  "online": zod.boolean(),
+  "joinedAt": zod.string()
+})),
+  "messages": zod.array(zod.object({
+  "id": zod.number(),
+  "playerId": zod.number(),
+  "playerName": zod.string(),
+  "body": zod.string(),
+  "createdAt": zod.string()
+})),
+  "transfers": zod.array(zod.object({
+  "id": zod.number(),
+  "fromPlayerId": zod.number(),
+  "fromName": zod.string(),
+  "toPlayerId": zod.number(),
+  "toName": zod.string(),
+  "amount": zod.number(),
+  "createdAt": zod.string()
+})),
+  "currentRound": zod.union([zod.object({
+  "id": zod.number(),
+  "gameId": zod.number(),
+  "gameType": zod.string(),
+  "gameTitle": zod.string(),
+  "status": zod.enum(['betting', 'resolved', 'cancelled']),
+  "bettingEndsAt": zod.string(),
+  "result": zod.object({
+
+}).passthrough().nullish(),
+  "createdAt": zod.string(),
+  "resolvedAt": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.number(),
+  "gameId": zod.number(),
+  "label": zod.string(),
+  "odds": zod.number(),
+  "emoji": zod.string().nullish(),
+  "weight": zod.number().nullish(),
+  "isWinner": zod.boolean().nullish(),
+  "imageUrl": zod.string().nullish(),
+  "displayOdds": zod.string().nullish(),
+  "trueWinPct": zod.number().nullish()
+})).optional(),
+  "config": zod.object({
+
+}).passthrough().optional(),
+  "bets": zod.array(zod.object({
+  "playerId": zod.number(),
+  "playerName": zod.string(),
+  "optionId": zod.number().nullish(),
+  "pick": zod.string().nullish(),
+  "wager": zod.number(),
+  "won": zod.boolean(),
+  "payout": zod.number()
+}))
+}),zod.null()]).optional()
+})
+
+
+/**
+ * @summary Get the active lobby a player currently belongs to (if any)
+ */
+export const GetActiveLobbyQueryParams = zod.object({
+  "playerId": zod.coerce.number()
+})
+
+export const GetActiveLobbyResponse = zod.union([zod.object({
+  "lobby": zod.object({
+  "id": zod.number(),
+  "code": zod.string(),
+  "name": zod.string(),
+  "hostId": zod.number(),
+  "status": zod.enum(['open', 'closed']),
+  "createdAt": zod.string()
+}),
+  "members": zod.array(zod.object({
+  "playerId": zod.number(),
+  "name": zod.string(),
+  "balance": zod.number(),
+  "isHost": zod.boolean(),
+  "online": zod.boolean(),
+  "joinedAt": zod.string()
+})),
+  "messages": zod.array(zod.object({
+  "id": zod.number(),
+  "playerId": zod.number(),
+  "playerName": zod.string(),
+  "body": zod.string(),
+  "createdAt": zod.string()
+})),
+  "transfers": zod.array(zod.object({
+  "id": zod.number(),
+  "fromPlayerId": zod.number(),
+  "fromName": zod.string(),
+  "toPlayerId": zod.number(),
+  "toName": zod.string(),
+  "amount": zod.number(),
+  "createdAt": zod.string()
+})),
+  "currentRound": zod.union([zod.object({
+  "id": zod.number(),
+  "gameId": zod.number(),
+  "gameType": zod.string(),
+  "gameTitle": zod.string(),
+  "status": zod.enum(['betting', 'resolved', 'cancelled']),
+  "bettingEndsAt": zod.string(),
+  "result": zod.object({
+
+}).passthrough().nullish(),
+  "createdAt": zod.string(),
+  "resolvedAt": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.number(),
+  "gameId": zod.number(),
+  "label": zod.string(),
+  "odds": zod.number(),
+  "emoji": zod.string().nullish(),
+  "weight": zod.number().nullish(),
+  "isWinner": zod.boolean().nullish(),
+  "imageUrl": zod.string().nullish(),
+  "displayOdds": zod.string().nullish(),
+  "trueWinPct": zod.number().nullish()
+})).optional(),
+  "config": zod.object({
+
+}).passthrough().optional(),
+  "bets": zod.array(zod.object({
+  "playerId": zod.number(),
+  "playerName": zod.string(),
+  "optionId": zod.number().nullish(),
+  "pick": zod.string().nullish(),
+  "wager": zod.number(),
+  "won": zod.boolean(),
+  "payout": zod.number()
+}))
+}),zod.null()]).optional()
+}),zod.null()])
+
+
+/**
+ * @summary Get full lobby state
+ */
+export const GetLobbyParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetLobbyResponse = zod.object({
+  "lobby": zod.object({
+  "id": zod.number(),
+  "code": zod.string(),
+  "name": zod.string(),
+  "hostId": zod.number(),
+  "status": zod.enum(['open', 'closed']),
+  "createdAt": zod.string()
+}),
+  "members": zod.array(zod.object({
+  "playerId": zod.number(),
+  "name": zod.string(),
+  "balance": zod.number(),
+  "isHost": zod.boolean(),
+  "online": zod.boolean(),
+  "joinedAt": zod.string()
+})),
+  "messages": zod.array(zod.object({
+  "id": zod.number(),
+  "playerId": zod.number(),
+  "playerName": zod.string(),
+  "body": zod.string(),
+  "createdAt": zod.string()
+})),
+  "transfers": zod.array(zod.object({
+  "id": zod.number(),
+  "fromPlayerId": zod.number(),
+  "fromName": zod.string(),
+  "toPlayerId": zod.number(),
+  "toName": zod.string(),
+  "amount": zod.number(),
+  "createdAt": zod.string()
+})),
+  "currentRound": zod.union([zod.object({
+  "id": zod.number(),
+  "gameId": zod.number(),
+  "gameType": zod.string(),
+  "gameTitle": zod.string(),
+  "status": zod.enum(['betting', 'resolved', 'cancelled']),
+  "bettingEndsAt": zod.string(),
+  "result": zod.object({
+
+}).passthrough().nullish(),
+  "createdAt": zod.string(),
+  "resolvedAt": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.number(),
+  "gameId": zod.number(),
+  "label": zod.string(),
+  "odds": zod.number(),
+  "emoji": zod.string().nullish(),
+  "weight": zod.number().nullish(),
+  "isWinner": zod.boolean().nullish(),
+  "imageUrl": zod.string().nullish(),
+  "displayOdds": zod.string().nullish(),
+  "trueWinPct": zod.number().nullish()
+})).optional(),
+  "config": zod.object({
+
+}).passthrough().optional(),
+  "bets": zod.array(zod.object({
+  "playerId": zod.number(),
+  "playerName": zod.string(),
+  "optionId": zod.number().nullish(),
+  "pick": zod.string().nullish(),
+  "wager": zod.number(),
+  "won": zod.boolean(),
+  "payout": zod.number()
+}))
+}),zod.null()]).optional()
+})
+
+
+/**
+ * @summary Leave a lobby (host departure migrates or closes the lobby)
+ */
+export const LeaveLobbyParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const LeaveLobbyBody = zod.object({
+  "playerId": zod.number()
+})
+
+export const LeaveLobbyResponse = zod.union([zod.object({
+  "lobby": zod.object({
+  "id": zod.number(),
+  "code": zod.string(),
+  "name": zod.string(),
+  "hostId": zod.number(),
+  "status": zod.enum(['open', 'closed']),
+  "createdAt": zod.string()
+}),
+  "members": zod.array(zod.object({
+  "playerId": zod.number(),
+  "name": zod.string(),
+  "balance": zod.number(),
+  "isHost": zod.boolean(),
+  "online": zod.boolean(),
+  "joinedAt": zod.string()
+})),
+  "messages": zod.array(zod.object({
+  "id": zod.number(),
+  "playerId": zod.number(),
+  "playerName": zod.string(),
+  "body": zod.string(),
+  "createdAt": zod.string()
+})),
+  "transfers": zod.array(zod.object({
+  "id": zod.number(),
+  "fromPlayerId": zod.number(),
+  "fromName": zod.string(),
+  "toPlayerId": zod.number(),
+  "toName": zod.string(),
+  "amount": zod.number(),
+  "createdAt": zod.string()
+})),
+  "currentRound": zod.union([zod.object({
+  "id": zod.number(),
+  "gameId": zod.number(),
+  "gameType": zod.string(),
+  "gameTitle": zod.string(),
+  "status": zod.enum(['betting', 'resolved', 'cancelled']),
+  "bettingEndsAt": zod.string(),
+  "result": zod.object({
+
+}).passthrough().nullish(),
+  "createdAt": zod.string(),
+  "resolvedAt": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.number(),
+  "gameId": zod.number(),
+  "label": zod.string(),
+  "odds": zod.number(),
+  "emoji": zod.string().nullish(),
+  "weight": zod.number().nullish(),
+  "isWinner": zod.boolean().nullish(),
+  "imageUrl": zod.string().nullish(),
+  "displayOdds": zod.string().nullish(),
+  "trueWinPct": zod.number().nullish()
+})).optional(),
+  "config": zod.object({
+
+}).passthrough().optional(),
+  "bets": zod.array(zod.object({
+  "playerId": zod.number(),
+  "playerName": zod.string(),
+  "optionId": zod.number().nullish(),
+  "pick": zod.string().nullish(),
+  "wager": zod.number(),
+  "won": zod.boolean(),
+  "payout": zod.number()
+}))
+}),zod.null()]).optional()
+}),zod.null()])
+
+
+/**
+ * @summary Send a chat message to the lobby
+ */
+export const SendLobbyChatParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const SendLobbyChatBody = zod.object({
+  "playerId": zod.number(),
+  "body": zod.string()
+})
+
+export const SendLobbyChatResponse = zod.object({
+  "id": zod.number(),
+  "playerId": zod.number(),
+  "playerName": zod.string(),
+  "body": zod.string(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Transfer virtual coins to another lobby member
+ */
+export const TransferCoinsParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const TransferCoinsBody = zod.object({
+  "fromPlayerId": zod.number(),
+  "toPlayerId": zod.number(),
+  "amount": zod.number()
+})
+
+export const TransferCoinsResponse = zod.object({
+  "fromBalance": zod.number(),
+  "toBalance": zod.number(),
+  "transfer": zod.object({
+  "id": zod.number(),
+  "fromPlayerId": zod.number(),
+  "fromName": zod.string(),
+  "toPlayerId": zod.number(),
+  "toName": zod.string(),
+  "amount": zod.number(),
+  "createdAt": zod.string()
+})
+})
+
+
+/**
+ * @summary Start a synchronized live round for the lobby
+ */
+export const StartLobbyRoundParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const StartLobbyRoundBody = zod.object({
+  "playerId": zod.number(),
+  "gameId": zod.number()
+})
+
+export const StartLobbyRoundResponse = zod.object({
+  "id": zod.number(),
+  "gameId": zod.number(),
+  "gameType": zod.string(),
+  "gameTitle": zod.string(),
+  "status": zod.enum(['betting', 'resolved', 'cancelled']),
+  "bettingEndsAt": zod.string(),
+  "result": zod.object({
+
+}).passthrough().nullish(),
+  "createdAt": zod.string(),
+  "resolvedAt": zod.string().nullish(),
+  "options": zod.array(zod.object({
+  "id": zod.number(),
+  "gameId": zod.number(),
+  "label": zod.string(),
+  "odds": zod.number(),
+  "emoji": zod.string().nullish(),
+  "weight": zod.number().nullish(),
+  "isWinner": zod.boolean().nullish(),
+  "imageUrl": zod.string().nullish(),
+  "displayOdds": zod.string().nullish(),
+  "trueWinPct": zod.number().nullish()
+})).optional(),
+  "config": zod.object({
+
+}).passthrough().optional(),
+  "bets": zod.array(zod.object({
+  "playerId": zod.number(),
+  "playerName": zod.string(),
+  "optionId": zod.number().nullish(),
+  "pick": zod.string().nullish(),
+  "wager": zod.number(),
+  "won": zod.boolean(),
+  "payout": zod.number()
+}))
+})
+
+
+/**
+ * @summary Place a bet in the current betting window of a live round
+ */
+export const PlaceRoundBetParams = zod.object({
+  "id": zod.coerce.number(),
+  "roundId": zod.coerce.number()
+})
+
+export const PlaceRoundBetBody = zod.object({
+  "playerId": zod.number(),
+  "wager": zod.number(),
+  "optionId": zod.number().nullish(),
+  "pick": zod.string().nullish()
+})
+
+export const PlaceRoundBetResponse = zod.object({
+  "playerId": zod.number(),
+  "playerName": zod.string(),
+  "optionId": zod.number().nullish(),
+  "pick": zod.string().nullish(),
+  "wager": zod.number(),
+  "won": zod.boolean(),
+  "payout": zod.number()
 })
 
 
