@@ -437,6 +437,28 @@ paths:
         "401":
           description: Unauthorized
 
+  /mod/players/{id}:
+    delete:
+      operationId: modDeletePlayer
+      tags: [mod]
+      summary: Delete a player account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: x-mod-password
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          description: Unauthorized
+
   /mod/settings:
     get:
       operationId: modGetSettings

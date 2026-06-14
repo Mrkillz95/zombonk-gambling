@@ -451,6 +451,18 @@ export const ModUpdatePlayerBalanceResponse = zod.object({
 
 
 /**
+ * @summary Delete a player account
+ */
+export const ModDeletePlayerParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ModDeletePlayerHeader = zod.object({
+  "x-mod-password": zod.string()
+})
+
+
+/**
  * @summary Get mod settings
  */
 export const ModGetSettingsHeader = zod.object({

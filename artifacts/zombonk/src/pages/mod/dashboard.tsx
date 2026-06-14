@@ -7,6 +7,7 @@ import {
   getModListPlayersQueryKey,
   useModUpdatePlayerBalance,
   useModRigPlayer,
+  useModDeletePlayer,
   useModGetSettings,
   getModGetSettingsQueryKey,
   useModUpdateSettings,
@@ -59,6 +60,26 @@ export default function ModDashboard() {
 
   const balanceMutation = useModUpdatePlayerBalance({ request: req });
   const rigMutation = useModRigPlayer({ request: req });
+  const deleteMutation = useModDeletePlayer({ request: req });
+
+  const handleDeletePlayer = (id: number, name: string) => {
+    if (!window.confirm(`Permanently delete "${name}" (#${id})?\n\nThis removes the account along with all of its bets and redemption history. This cannot be undone.`)) {
+      return;
+    }
+    deleteMutation.mutate(
+      { id },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getModListPlayersQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getModGetStatsQueryKey() });
+          toast({ title: `Deleted ${name}` });
+        },
+        onError: () => {
+          toast({ title: "Failed to delete player", variant: "destructive" });
+        },
+      }
+    );
+  };
 
   const { data: settings } = useModGetSettings({
     request: req,
@@ -350,6 +371,16 @@ export default function ModDashboard() {
                               data-testid={`button-rig-${p.id}`}
                             >
                               {hasActiveRig ? "Rigged ▾" : "Global Rig ▾"}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 border-red-500/40 text-red-400 hover:bg-red-500/10 hover:text-red-400"
+                              onClick={() => handleDeletePlayer(p.id, p.name)}
+                              disabled={deleteMutation.isPending}
+                              data-testid={`button-delete-player-${p.id}`}
+                            >
+                              Delete
                             </Button>
                           </>
                         )}

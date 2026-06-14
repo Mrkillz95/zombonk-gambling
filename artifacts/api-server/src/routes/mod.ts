@@ -1,6 +1,13 @@
 import { Router, type IRouter } from "express";
 import { eq, count, sum, desc } from "drizzle-orm";
-import { db, playersTable, gamesTable, gameOptionsTable, betsTable } from "@workspace/db";
+import {
+  db,
+  playersTable,
+  gamesTable,
+  gameOptionsTable,
+  betsTable,
+  redemptionRequestsTable,
+} from "@workspace/db";
 import z from "zod/v4";
 import {
   ModAuthBody,
@@ -372,6 +379,25 @@ router.patch("/mod/players/:id/balance", async (req, res): Promise<void> => {
   }
 
   res.json({ ...player, createdAt: player.createdAt.toISOString() });
+});
+
+router.delete("/mod/players/:id", async (req, res): Promise<void> => {
+  if (!checkAuth(req, res)) return;
+
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(rawId, 10);
+  if (Number.isNaN(id)) {
+    res.status(400).json({ error: "Invalid id" });
+    return;
+  }
+
+  await db.transaction(async (tx) => {
+    await tx.delete(redemptionRequestsTable).where(eq(redemptionRequestsTable.playerId, id));
+    await tx.delete(betsTable).where(eq(betsTable.playerId, id));
+    await tx.delete(playersTable).where(eq(playersTable.id, id));
+  });
+
+  res.sendStatus(204);
 });
 
 router.get("/mod/settings", async (req, res): Promise<void> => {

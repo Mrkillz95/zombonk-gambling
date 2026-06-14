@@ -1403,6 +1403,76 @@ export const useModUpdatePlayerBalance = <TError = ErrorType<void>,
       return useMutation(getModUpdatePlayerBalanceMutationOptions(options));
     }
 
+export const getModDeletePlayerUrl = (id: number,) => {
+
+
+
+
+  return `/api/mod/players/${id}`
+}
+
+/**
+ * @summary Delete a player account
+ */
+export const modDeletePlayer = async (id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getModDeletePlayerUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getModDeletePlayerMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof modDeletePlayer>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof modDeletePlayer>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['modDeletePlayer'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof modDeletePlayer>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  modDeletePlayer(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ModDeletePlayerMutationResult = NonNullable<Awaited<ReturnType<typeof modDeletePlayer>>>
+
+    export type ModDeletePlayerMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete a player account
+ */
+export const useModDeletePlayer = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof modDeletePlayer>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof modDeletePlayer>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getModDeletePlayerMutationOptions(options));
+    }
+
 export const getModGetSettingsUrl = () => {
 
 
