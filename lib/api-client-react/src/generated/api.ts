@@ -23,6 +23,7 @@ import type {
   BalanceUpdate,
   Bet,
   BetActivity,
+  CreateRedemptionItemBody,
   Game,
   GameInput,
   GameUpdate,
@@ -30,12 +31,20 @@ import type {
   ListGamesParams,
   ModAuthInput,
   ModAuthResult,
+  ModDeleteRedemptionItem200,
+  ModListRedemptionRequestsParams,
   ModStats,
   PlayInput,
   PlayResult,
   Player,
   PlayerInput,
-  ResolveInput
+  RedemptionItem,
+  RedemptionRequest,
+  RedemptionRequestDetail,
+  RedemptionSubmitBody,
+  ResolveInput,
+  UpdateRedemptionItemBody,
+  UpdateRedemptionRequestBody
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -1320,4 +1329,599 @@ export function useModGetStats<TData = Awaited<ReturnType<typeof modGetStats>>, 
 
 
 
+
+export const getListRedemptionItemsUrl = () => {
+
+
+
+
+  return `/api/redemptions/items`
+}
+
+/**
+ * @summary List active redemption items
+ */
+export const listRedemptionItems = async ( options?: RequestInit): Promise<RedemptionItem[]> => {
+
+  return customFetch<RedemptionItem[]>(getListRedemptionItemsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListRedemptionItemsQueryKey = () => {
+    return [
+    `/api/redemptions/items`
+    ] as const;
+    }
+
+
+export const getListRedemptionItemsQueryOptions = <TData = Awaited<ReturnType<typeof listRedemptionItems>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRedemptionItems>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListRedemptionItemsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listRedemptionItems>>> = ({ signal }) => listRedemptionItems({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listRedemptionItems>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListRedemptionItemsQueryResult = NonNullable<Awaited<ReturnType<typeof listRedemptionItems>>>
+export type ListRedemptionItemsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List active redemption items
+ */
+
+export function useListRedemptionItems<TData = Awaited<ReturnType<typeof listRedemptionItems>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRedemptionItems>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListRedemptionItemsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateRedemptionRequestUrl = (id: number,) => {
+
+
+
+
+  return `/api/redemptions/items/${id}/request`
+}
+
+/**
+ * @summary Player requests a redemption item
+ */
+export const createRedemptionRequest = async (id: number,
+    redemptionSubmitBody: RedemptionSubmitBody, options?: RequestInit): Promise<RedemptionRequest> => {
+
+  return customFetch<RedemptionRequest>(getCreateRedemptionRequestUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      redemptionSubmitBody,)
+  }
+);}
+
+
+
+
+export const getCreateRedemptionRequestMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createRedemptionRequest>>, TError,{id: number;data: BodyType<RedemptionSubmitBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createRedemptionRequest>>, TError,{id: number;data: BodyType<RedemptionSubmitBody>}, TContext> => {
+
+const mutationKey = ['createRedemptionRequest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createRedemptionRequest>>, {id: number;data: BodyType<RedemptionSubmitBody>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createRedemptionRequest(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateRedemptionRequestMutationResult = NonNullable<Awaited<ReturnType<typeof createRedemptionRequest>>>
+    export type CreateRedemptionRequestMutationBody = BodyType<RedemptionSubmitBody>
+    export type CreateRedemptionRequestMutationError = ErrorType<void>
+
+    /**
+ * @summary Player requests a redemption item
+ */
+export const useCreateRedemptionRequest = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createRedemptionRequest>>, TError,{id: number;data: BodyType<RedemptionSubmitBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createRedemptionRequest>>,
+        TError,
+        {id: number;data: BodyType<RedemptionSubmitBody>},
+        TContext
+      > => {
+      return useMutation(getCreateRedemptionRequestMutationOptions(options));
+    }
+
+export const getModListRedemptionItemsUrl = () => {
+
+
+
+
+  return `/api/mod/redemptions/items`
+}
+
+/**
+ * @summary List all redemption items (mod)
+ */
+export const modListRedemptionItems = async ( options?: RequestInit): Promise<RedemptionItem[]> => {
+
+  return customFetch<RedemptionItem[]>(getModListRedemptionItemsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getModListRedemptionItemsQueryKey = () => {
+    return [
+    `/api/mod/redemptions/items`
+    ] as const;
+    }
+
+
+export const getModListRedemptionItemsQueryOptions = <TData = Awaited<ReturnType<typeof modListRedemptionItems>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof modListRedemptionItems>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getModListRedemptionItemsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof modListRedemptionItems>>> = ({ signal }) => modListRedemptionItems({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof modListRedemptionItems>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ModListRedemptionItemsQueryResult = NonNullable<Awaited<ReturnType<typeof modListRedemptionItems>>>
+export type ModListRedemptionItemsQueryError = ErrorType<void>
+
+
+/**
+ * @summary List all redemption items (mod)
+ */
+
+export function useModListRedemptionItems<TData = Awaited<ReturnType<typeof modListRedemptionItems>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof modListRedemptionItems>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getModListRedemptionItemsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getModCreateRedemptionItemUrl = () => {
+
+
+
+
+  return `/api/mod/redemptions/items`
+}
+
+/**
+ * @summary Create a redemption item
+ */
+export const modCreateRedemptionItem = async (createRedemptionItemBody: CreateRedemptionItemBody, options?: RequestInit): Promise<RedemptionItem> => {
+
+  return customFetch<RedemptionItem>(getModCreateRedemptionItemUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createRedemptionItemBody,)
+  }
+);}
+
+
+
+
+export const getModCreateRedemptionItemMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof modCreateRedemptionItem>>, TError,{data: BodyType<CreateRedemptionItemBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof modCreateRedemptionItem>>, TError,{data: BodyType<CreateRedemptionItemBody>}, TContext> => {
+
+const mutationKey = ['modCreateRedemptionItem'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof modCreateRedemptionItem>>, {data: BodyType<CreateRedemptionItemBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  modCreateRedemptionItem(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ModCreateRedemptionItemMutationResult = NonNullable<Awaited<ReturnType<typeof modCreateRedemptionItem>>>
+    export type ModCreateRedemptionItemMutationBody = BodyType<CreateRedemptionItemBody>
+    export type ModCreateRedemptionItemMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a redemption item
+ */
+export const useModCreateRedemptionItem = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof modCreateRedemptionItem>>, TError,{data: BodyType<CreateRedemptionItemBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof modCreateRedemptionItem>>,
+        TError,
+        {data: BodyType<CreateRedemptionItemBody>},
+        TContext
+      > => {
+      return useMutation(getModCreateRedemptionItemMutationOptions(options));
+    }
+
+export const getModUpdateRedemptionItemUrl = (id: number,) => {
+
+
+
+
+  return `/api/mod/redemptions/items/${id}`
+}
+
+/**
+ * @summary Update a redemption item
+ */
+export const modUpdateRedemptionItem = async (id: number,
+    updateRedemptionItemBody: UpdateRedemptionItemBody, options?: RequestInit): Promise<RedemptionItem> => {
+
+  return customFetch<RedemptionItem>(getModUpdateRedemptionItemUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateRedemptionItemBody,)
+  }
+);}
+
+
+
+
+export const getModUpdateRedemptionItemMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof modUpdateRedemptionItem>>, TError,{id: number;data: BodyType<UpdateRedemptionItemBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof modUpdateRedemptionItem>>, TError,{id: number;data: BodyType<UpdateRedemptionItemBody>}, TContext> => {
+
+const mutationKey = ['modUpdateRedemptionItem'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof modUpdateRedemptionItem>>, {id: number;data: BodyType<UpdateRedemptionItemBody>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  modUpdateRedemptionItem(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ModUpdateRedemptionItemMutationResult = NonNullable<Awaited<ReturnType<typeof modUpdateRedemptionItem>>>
+    export type ModUpdateRedemptionItemMutationBody = BodyType<UpdateRedemptionItemBody>
+    export type ModUpdateRedemptionItemMutationError = ErrorType<void>
+
+    /**
+ * @summary Update a redemption item
+ */
+export const useModUpdateRedemptionItem = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof modUpdateRedemptionItem>>, TError,{id: number;data: BodyType<UpdateRedemptionItemBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof modUpdateRedemptionItem>>,
+        TError,
+        {id: number;data: BodyType<UpdateRedemptionItemBody>},
+        TContext
+      > => {
+      return useMutation(getModUpdateRedemptionItemMutationOptions(options));
+    }
+
+export const getModDeleteRedemptionItemUrl = (id: number,) => {
+
+
+
+
+  return `/api/mod/redemptions/items/${id}`
+}
+
+/**
+ * @summary Delete a redemption item
+ */
+export const modDeleteRedemptionItem = async (id: number, options?: RequestInit): Promise<ModDeleteRedemptionItem200> => {
+
+  return customFetch<ModDeleteRedemptionItem200>(getModDeleteRedemptionItemUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getModDeleteRedemptionItemMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof modDeleteRedemptionItem>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof modDeleteRedemptionItem>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['modDeleteRedemptionItem'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof modDeleteRedemptionItem>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  modDeleteRedemptionItem(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ModDeleteRedemptionItemMutationResult = NonNullable<Awaited<ReturnType<typeof modDeleteRedemptionItem>>>
+
+    export type ModDeleteRedemptionItemMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete a redemption item
+ */
+export const useModDeleteRedemptionItem = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof modDeleteRedemptionItem>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof modDeleteRedemptionItem>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getModDeleteRedemptionItemMutationOptions(options));
+    }
+
+export const getModListRedemptionRequestsUrl = (params?: ModListRedemptionRequestsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/mod/redemptions/requests?${stringifiedParams}` : `/api/mod/redemptions/requests`
+}
+
+/**
+ * @summary List all redemption requests (mod)
+ */
+export const modListRedemptionRequests = async (params?: ModListRedemptionRequestsParams, options?: RequestInit): Promise<RedemptionRequestDetail[]> => {
+
+  return customFetch<RedemptionRequestDetail[]>(getModListRedemptionRequestsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getModListRedemptionRequestsQueryKey = (params?: ModListRedemptionRequestsParams,) => {
+    return [
+    `/api/mod/redemptions/requests`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getModListRedemptionRequestsQueryOptions = <TData = Awaited<ReturnType<typeof modListRedemptionRequests>>, TError = ErrorType<void>>(params?: ModListRedemptionRequestsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof modListRedemptionRequests>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getModListRedemptionRequestsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof modListRedemptionRequests>>> = ({ signal }) => modListRedemptionRequests(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof modListRedemptionRequests>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ModListRedemptionRequestsQueryResult = NonNullable<Awaited<ReturnType<typeof modListRedemptionRequests>>>
+export type ModListRedemptionRequestsQueryError = ErrorType<void>
+
+
+/**
+ * @summary List all redemption requests (mod)
+ */
+
+export function useModListRedemptionRequests<TData = Awaited<ReturnType<typeof modListRedemptionRequests>>, TError = ErrorType<void>>(
+ params?: ModListRedemptionRequestsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof modListRedemptionRequests>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getModListRedemptionRequestsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getModUpdateRedemptionRequestUrl = (id: number,) => {
+
+
+
+
+  return `/api/mod/redemptions/requests/${id}`
+}
+
+/**
+ * @summary Fulfill or deny a redemption request
+ */
+export const modUpdateRedemptionRequest = async (id: number,
+    updateRedemptionRequestBody: UpdateRedemptionRequestBody, options?: RequestInit): Promise<RedemptionRequestDetail> => {
+
+  return customFetch<RedemptionRequestDetail>(getModUpdateRedemptionRequestUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateRedemptionRequestBody,)
+  }
+);}
+
+
+
+
+export const getModUpdateRedemptionRequestMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof modUpdateRedemptionRequest>>, TError,{id: number;data: BodyType<UpdateRedemptionRequestBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof modUpdateRedemptionRequest>>, TError,{id: number;data: BodyType<UpdateRedemptionRequestBody>}, TContext> => {
+
+const mutationKey = ['modUpdateRedemptionRequest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof modUpdateRedemptionRequest>>, {id: number;data: BodyType<UpdateRedemptionRequestBody>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  modUpdateRedemptionRequest(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ModUpdateRedemptionRequestMutationResult = NonNullable<Awaited<ReturnType<typeof modUpdateRedemptionRequest>>>
+    export type ModUpdateRedemptionRequestMutationBody = BodyType<UpdateRedemptionRequestBody>
+    export type ModUpdateRedemptionRequestMutationError = ErrorType<void>
+
+    /**
+ * @summary Fulfill or deny a redemption request
+ */
+export const useModUpdateRedemptionRequest = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof modUpdateRedemptionRequest>>, TError,{id: number;data: BodyType<UpdateRedemptionRequestBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof modUpdateRedemptionRequest>>,
+        TError,
+        {id: number;data: BodyType<UpdateRedemptionRequestBody>},
+        TContext
+      > => {
+      return useMutation(getModUpdateRedemptionRequestMutationOptions(options));
+    }
 

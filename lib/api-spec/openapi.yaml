@@ -403,6 +403,217 @@ paths:
         "401":
           description: Unauthorized
 
+  /redemptions/items:
+    get:
+      operationId: listRedemptionItems
+      tags: [redemptions]
+      summary: List active redemption items
+      responses:
+        "200":
+          description: Items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RedemptionItem"
+
+  /redemptions/items/{id}/request:
+    post:
+      operationId: createRedemptionRequest
+      tags: [redemptions]
+      summary: Player requests a redemption item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RedemptionSubmitBody"
+      responses:
+        "200":
+          description: Request created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionRequest"
+        "400":
+          description: Bad request (insufficient funds, etc.)
+        "404":
+          description: Item not found
+
+  /mod/redemptions/items:
+    get:
+      operationId: modListRedemptionItems
+      tags: [mod]
+      summary: List all redemption items (mod)
+      parameters:
+        - name: x-mod-password
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RedemptionItem"
+        "401":
+          description: Unauthorized
+    post:
+      operationId: modCreateRedemptionItem
+      tags: [mod]
+      summary: Create a redemption item
+      parameters:
+        - name: x-mod-password
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRedemptionItemBody"
+      responses:
+        "200":
+          description: Created item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionItem"
+        "401":
+          description: Unauthorized
+
+  /mod/redemptions/items/{id}:
+    patch:
+      operationId: modUpdateRedemptionItem
+      tags: [mod]
+      summary: Update a redemption item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: x-mod-password
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRedemptionItemBody"
+      responses:
+        "200":
+          description: Updated item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionItem"
+        "401":
+          description: Unauthorized
+    delete:
+      operationId: modDeleteRedemptionItem
+      tags: [mod]
+      summary: Delete a redemption item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: x-mod-password
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success]
+                properties:
+                  success:
+                    type: boolean
+        "401":
+          description: Unauthorized
+
+  /mod/redemptions/requests:
+    get:
+      operationId: modListRedemptionRequests
+      tags: [mod]
+      summary: List all redemption requests (mod)
+      parameters:
+        - name: x-mod-password
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RedemptionRequestDetail"
+        "401":
+          description: Unauthorized
+
+  /mod/redemptions/requests/{id}:
+    patch:
+      operationId: modUpdateRedemptionRequest
+      tags: [mod]
+      summary: Fulfill or deny a redemption request
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: x-mod-password
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRedemptionRequestBody"
+      responses:
+        "200":
+          description: Updated request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionRequestDetail"
+        "401":
+          description: Unauthorized
+
 components:
   schemas:
     HealthStatus:
@@ -642,3 +853,114 @@ components:
           type: integer
         totalWagered:
           type: integer
+
+    RedemptionItem:
+      type: object
+      required: [id, name, description, cost, active, createdAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        cost:
+          type: integer
+        active:
+          type: boolean
+        createdAt:
+          type: string
+
+    RedemptionRequest:
+      type: object
+      required: [id, status, createdAt, playerId, itemId]
+      properties:
+        id:
+          type: integer
+        status:
+          type: string
+          enum: [pending, fulfilled, denied]
+        note:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        playerId:
+          type: integer
+        itemId:
+          type: integer
+        playerName:
+          type: ["string", "null"]
+        itemName:
+          type: ["string", "null"]
+        itemDescription:
+          type: ["string", "null"]
+        itemCost:
+          type: ["integer", "null"]
+
+    RedemptionRequestDetail:
+      type: object
+      required: [id, status, createdAt, playerId, itemId]
+      properties:
+        id:
+          type: integer
+        status:
+          type: string
+          enum: [pending, fulfilled, denied]
+        note:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        playerId:
+          type: integer
+        itemId:
+          type: integer
+        playerName:
+          type: ["string", "null"]
+        itemName:
+          type: ["string", "null"]
+        itemDescription:
+          type: ["string", "null"]
+        itemCost:
+          type: ["integer", "null"]
+
+    CreateRedemptionItemBody:
+      type: object
+      required: [name, cost]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        cost:
+          type: integer
+        active:
+          type: boolean
+
+    UpdateRedemptionItemBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        cost:
+          type: integer
+        active:
+          type: boolean
+
+    RedemptionSubmitBody:
+      type: object
+      required: [playerId]
+      properties:
+        playerId:
+          type: integer
+
+    UpdateRedemptionRequestBody:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [fulfilled, denied]
+        note:
+          type: string

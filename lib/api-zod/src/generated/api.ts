@@ -384,3 +384,184 @@ export const ModGetStatsResponse = zod.object({
 })
 
 
+/**
+ * @summary List active redemption items
+ */
+export const ListRedemptionItemsResponseItem = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "cost": zod.number(),
+  "active": zod.boolean(),
+  "createdAt": zod.string()
+})
+export const ListRedemptionItemsResponse = zod.array(ListRedemptionItemsResponseItem)
+
+
+/**
+ * @summary Player requests a redemption item
+ */
+export const CreateRedemptionRequestParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const CreateRedemptionRequestBody = zod.object({
+  "playerId": zod.number()
+})
+
+export const CreateRedemptionRequestResponse = zod.object({
+  "id": zod.number(),
+  "status": zod.enum(['pending', 'fulfilled', 'denied']),
+  "note": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "playerId": zod.number(),
+  "itemId": zod.number(),
+  "playerName": zod.string().nullish(),
+  "itemName": zod.string().nullish(),
+  "itemDescription": zod.string().nullish(),
+  "itemCost": zod.number().nullish()
+})
+
+
+/**
+ * @summary List all redemption items (mod)
+ */
+export const ModListRedemptionItemsHeader = zod.object({
+  "x-mod-password": zod.string()
+})
+
+export const ModListRedemptionItemsResponseItem = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "cost": zod.number(),
+  "active": zod.boolean(),
+  "createdAt": zod.string()
+})
+export const ModListRedemptionItemsResponse = zod.array(ModListRedemptionItemsResponseItem)
+
+
+/**
+ * @summary Create a redemption item
+ */
+export const ModCreateRedemptionItemHeader = zod.object({
+  "x-mod-password": zod.string()
+})
+
+export const ModCreateRedemptionItemBody = zod.object({
+  "name": zod.string(),
+  "description": zod.string().optional(),
+  "cost": zod.number(),
+  "active": zod.boolean().optional()
+})
+
+export const ModCreateRedemptionItemResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "cost": zod.number(),
+  "active": zod.boolean(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Update a redemption item
+ */
+export const ModUpdateRedemptionItemParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ModUpdateRedemptionItemHeader = zod.object({
+  "x-mod-password": zod.string()
+})
+
+export const ModUpdateRedemptionItemBody = zod.object({
+  "name": zod.string().optional(),
+  "description": zod.string().optional(),
+  "cost": zod.number().optional(),
+  "active": zod.boolean().optional()
+})
+
+export const ModUpdateRedemptionItemResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "cost": zod.number(),
+  "active": zod.boolean(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Delete a redemption item
+ */
+export const ModDeleteRedemptionItemParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ModDeleteRedemptionItemHeader = zod.object({
+  "x-mod-password": zod.string()
+})
+
+export const ModDeleteRedemptionItemResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+/**
+ * @summary List all redemption requests (mod)
+ */
+export const ModListRedemptionRequestsQueryParams = zod.object({
+  "status": zod.coerce.string().optional()
+})
+
+export const ModListRedemptionRequestsHeader = zod.object({
+  "x-mod-password": zod.string()
+})
+
+export const ModListRedemptionRequestsResponseItem = zod.object({
+  "id": zod.number(),
+  "status": zod.enum(['pending', 'fulfilled', 'denied']),
+  "note": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "playerId": zod.number(),
+  "itemId": zod.number(),
+  "playerName": zod.string().nullish(),
+  "itemName": zod.string().nullish(),
+  "itemDescription": zod.string().nullish(),
+  "itemCost": zod.number().nullish()
+})
+export const ModListRedemptionRequestsResponse = zod.array(ModListRedemptionRequestsResponseItem)
+
+
+/**
+ * @summary Fulfill or deny a redemption request
+ */
+export const ModUpdateRedemptionRequestParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ModUpdateRedemptionRequestHeader = zod.object({
+  "x-mod-password": zod.string()
+})
+
+export const ModUpdateRedemptionRequestBody = zod.object({
+  "status": zod.enum(['fulfilled', 'denied']),
+  "note": zod.string().optional()
+})
+
+export const ModUpdateRedemptionRequestResponse = zod.object({
+  "id": zod.number(),
+  "status": zod.enum(['pending', 'fulfilled', 'denied']),
+  "note": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "playerId": zod.number(),
+  "itemId": zod.number(),
+  "playerName": zod.string().nullish(),
+  "itemName": zod.string().nullish(),
+  "itemDescription": zod.string().nullish(),
+  "itemCost": zod.number().nullish()
+})
+
+

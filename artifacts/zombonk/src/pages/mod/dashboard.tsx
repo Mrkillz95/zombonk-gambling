@@ -71,6 +71,9 @@ export default function ModDashboard() {
             <Link href="/mod/games">
               <Button variant="outline" size="sm" data-testid="link-manage-games">Manage Games</Button>
             </Link>
+            <Link href="/mod/redeem">
+              <Button variant="outline" size="sm" data-testid="link-manage-redeem">Redemptions</Button>
+            </Link>
             <Button variant="ghost" size="sm" onClick={handleLogout} data-testid="button-logout">Logout</Button>
           </div>
         </div>

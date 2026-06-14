@@ -204,7 +204,109 @@ export interface ModStats {
   totalWagered: number;
 }
 
+export interface RedemptionItem {
+  id: number;
+  name: string;
+  description: string;
+  cost: number;
+  active: boolean;
+  createdAt: string;
+}
+
+export type RedemptionRequestStatus = typeof RedemptionRequestStatus[keyof typeof RedemptionRequestStatus];
+
+
+export const RedemptionRequestStatus = {
+  pending: 'pending',
+  fulfilled: 'fulfilled',
+  denied: 'denied',
+} as const;
+
+export interface RedemptionRequest {
+  id: number;
+  status: RedemptionRequestStatus;
+  /** @nullable */
+  note?: string | null;
+  createdAt: string;
+  playerId: number;
+  itemId: number;
+  /** @nullable */
+  playerName?: string | null;
+  /** @nullable */
+  itemName?: string | null;
+  /** @nullable */
+  itemDescription?: string | null;
+  /** @nullable */
+  itemCost?: number | null;
+}
+
+export type RedemptionRequestDetailStatus = typeof RedemptionRequestDetailStatus[keyof typeof RedemptionRequestDetailStatus];
+
+
+export const RedemptionRequestDetailStatus = {
+  pending: 'pending',
+  fulfilled: 'fulfilled',
+  denied: 'denied',
+} as const;
+
+export interface RedemptionRequestDetail {
+  id: number;
+  status: RedemptionRequestDetailStatus;
+  /** @nullable */
+  note?: string | null;
+  createdAt: string;
+  playerId: number;
+  itemId: number;
+  /** @nullable */
+  playerName?: string | null;
+  /** @nullable */
+  itemName?: string | null;
+  /** @nullable */
+  itemDescription?: string | null;
+  /** @nullable */
+  itemCost?: number | null;
+}
+
+export interface CreateRedemptionItemBody {
+  name: string;
+  description?: string;
+  cost: number;
+  active?: boolean;
+}
+
+export interface UpdateRedemptionItemBody {
+  name?: string;
+  description?: string;
+  cost?: number;
+  active?: boolean;
+}
+
+export interface RedemptionSubmitBody {
+  playerId: number;
+}
+
+export type UpdateRedemptionRequestBodyStatus = typeof UpdateRedemptionRequestBodyStatus[keyof typeof UpdateRedemptionRequestBodyStatus];
+
+
+export const UpdateRedemptionRequestBodyStatus = {
+  fulfilled: 'fulfilled',
+  denied: 'denied',
+} as const;
+
+export interface UpdateRedemptionRequestBody {
+  status: UpdateRedemptionRequestBodyStatus;
+  note?: string;
+}
+
 export type ListGamesParams = {
+status?: string;
+};
+
+export type ModDeleteRedemptionItem200 = {
+  success: boolean;
+};
+
+export type ModListRedemptionRequestsParams = {
 status?: string;
 };
 

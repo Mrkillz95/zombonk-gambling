@@ -10,6 +10,8 @@ import History from "@/pages/history";
 import ModLogin from "@/pages/mod-login";
 import ModDashboard from "@/pages/mod/dashboard";
 import ModGames from "@/pages/mod/games";
+import RedeemPage from "@/pages/redeem";
+import ModRedeem from "@/pages/mod/redeem";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,6 +32,8 @@ function Router() {
       <Route path="/mod" component={ModLogin} />
       <Route path="/mod/dashboard" component={ModDashboard} />
       <Route path="/mod/games" component={ModGames} />
+      <Route path="/redeem" component={RedeemPage} />
+      <Route path="/mod/redeem" component={ModRedeem} />
       <Route component={NotFound} />
     </Switch>
   );
