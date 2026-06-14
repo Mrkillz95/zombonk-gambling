@@ -93,6 +93,8 @@ router.patch("/mod/redemptions/items/:id", async (req, res): Promise<void> => {
 router.delete("/mod/redemptions/items/:id", async (req, res): Promise<void> => {
   if (!requireMod(req, res)) return;
   const id = parseInt(req.params.id ?? "0", 10);
+  // Delete associated requests first to satisfy the foreign key constraint
+  await db.delete(redemptionRequestsTable).where(eq(redemptionRequestsTable.itemId, id));
   await db.delete(redemptionItemsTable).where(eq(redemptionItemsTable.id, id));
   res.json({ success: true });
 });
