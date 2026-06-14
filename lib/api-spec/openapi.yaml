@@ -1,22 +1,26 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Zombonk Gambling API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: players
+    description: Player operations
+  - name: games
+    description: Gambling game operations
+  - name: mod
+    description: Moderator operations
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +28,381 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /players:
+    post:
+      operationId: getOrCreatePlayer
+      tags: [players]
+      summary: Get or create a player by name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlayerInput"
+      responses:
+        "200":
+          description: Player found or created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Player"
+
+  /players/{id}:
+    get:
+      operationId: getPlayer
+      tags: [players]
+      summary: Get player by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Player
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Player"
+        "404":
+          description: Not found
+
+  /players/{id}/bets:
+    get:
+      operationId: getPlayerBets
+      tags: [players]
+      summary: Get a player's bet history
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Bet history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Bet"
+
+  /games:
+    get:
+      operationId: listGames
+      tags: [games]
+      summary: List open games
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of games
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Game"
+
+  /games/recent:
+    get:
+      operationId: getRecentActivity
+      tags: [games]
+      summary: Recent bet activity feed
+      responses:
+        "200":
+          description: Recent bets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BetActivity"
+
+  /games/{id}:
+    get:
+      operationId: getGame
+      tags: [games]
+      summary: Get game details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Game
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Game"
+        "404":
+          description: Not found
+
+  /games/{id}/play:
+    post:
+      operationId: playGame
+      tags: [games]
+      summary: Play a game / place a bet
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlayInput"
+      responses:
+        "200":
+          description: Play result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlayResult"
+        "400":
+          description: Bad request
+
+  /mod/auth:
+    post:
+      operationId: modAuth
+      tags: [mod]
+      summary: Verify moderator password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ModAuthInput"
+      responses:
+        "200":
+          description: Auth result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModAuthResult"
+        "401":
+          description: Unauthorized
+
+  /mod/games:
+    get:
+      operationId: modListGames
+      tags: [mod]
+      summary: List all games (mod)
+      parameters:
+        - name: x-mod-password
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: All games
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Game"
+        "401":
+          description: Unauthorized
+    post:
+      operationId: modCreateGame
+      tags: [mod]
+      summary: Create a new gambling game
+      parameters:
+        - name: x-mod-password
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GameInput"
+      responses:
+        "201":
+          description: Created game
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Game"
+        "401":
+          description: Unauthorized
+
+  /mod/games/{id}:
+    patch:
+      operationId: modUpdateGame
+      tags: [mod]
+      summary: Update a game (status, title, config)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: x-mod-password
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GameUpdate"
+      responses:
+        "200":
+          description: Updated game
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Game"
+        "401":
+          description: Unauthorized
+    delete:
+      operationId: modDeleteGame
+      tags: [mod]
+      summary: Delete a game
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: x-mod-password
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          description: Unauthorized
+
+  /mod/games/{id}/resolve:
+    post:
+      operationId: modResolveGame
+      tags: [mod]
+      summary: Resolve a match bet game with a winning option
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: x-mod-password
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResolveInput"
+      responses:
+        "200":
+          description: Resolved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Game"
+        "401":
+          description: Unauthorized
+
+  /mod/players:
+    get:
+      operationId: modListPlayers
+      tags: [mod]
+      summary: List all players
+      parameters:
+        - name: x-mod-password
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Players
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Player"
+        "401":
+          description: Unauthorized
+
+  /mod/players/{id}/balance:
+    patch:
+      operationId: modUpdatePlayerBalance
+      tags: [mod]
+      summary: Adjust a player's balance
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: x-mod-password
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BalanceUpdate"
+      responses:
+        "200":
+          description: Updated player
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Player"
+        "401":
+          description: Unauthorized
+
+  /mod/stats:
+    get:
+      operationId: modGetStats
+      tags: [mod]
+      summary: Get mod dashboard stats
+      parameters:
+        - name: x-mod-password
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModStats"
+        "401":
+          description: Unauthorized
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +413,232 @@ components:
       required:
         - status
 
+    Player:
+      type: object
+      required: [id, name, balance, createdAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        balance:
+          type: integer
+        createdAt:
+          type: string
+
+    PlayerInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+
+    Game:
+      type: object
+      required: [id, title, type, status, config, createdAt]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        type:
+          type: string
+          enum: [slots, coin_flip, match_bet, number_pick, mystery_box]
+        status:
+          type: string
+          enum: [open, closed, resolved]
+        config:
+          type: object
+          description: JSON config specific to game type
+        options:
+          type: array
+          items:
+            $ref: "#/components/schemas/GameOption"
+        resolvedOptionId:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+
+    GameOption:
+      type: object
+      required: [id, gameId, label, odds]
+      properties:
+        id:
+          type: integer
+        gameId:
+          type: integer
+        label:
+          type: string
+        odds:
+          type: number
+        emoji:
+          type: ["string", "null"]
+        weight:
+          type: ["integer", "null"]
+        isWinner:
+          type: ["boolean", "null"]
+
+    GameInput:
+      type: object
+      required: [title, type, config]
+      properties:
+        title:
+          type: string
+        type:
+          type: string
+          enum: [slots, coin_flip, match_bet, number_pick, mystery_box]
+        config:
+          type: object
+        options:
+          type: array
+          items:
+            $ref: "#/components/schemas/GameOptionInput"
+
+    GameOptionInput:
+      type: object
+      required: [label, odds]
+      properties:
+        label:
+          type: string
+        odds:
+          type: number
+        emoji:
+          type: string
+        weight:
+          type: integer
+
+    GameUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        status:
+          type: string
+          enum: [open, closed, resolved]
+        config:
+          type: object
+        options:
+          type: array
+          items:
+            $ref: "#/components/schemas/GameOptionInput"
+
+    PlayInput:
+      type: object
+      required: [playerId, wager]
+      properties:
+        playerId:
+          type: integer
+        wager:
+          type: integer
+        optionId:
+          type: ["integer", "null"]
+        pick:
+          type: ["string", "null"]
+
+    PlayResult:
+      type: object
+      required: [won, payout, newBalance, reels, message]
+      properties:
+        won:
+          type: boolean
+        payout:
+          type: integer
+        newBalance:
+          type: integer
+        reels:
+          type: array
+          items:
+            type: string
+        message:
+          type: string
+        betId:
+          type: integer
+
+    Bet:
+      type: object
+      required: [id, playerId, gameId, wager, payout, won, createdAt]
+      properties:
+        id:
+          type: integer
+        playerId:
+          type: integer
+        gameId:
+          type: integer
+        gameTitle:
+          type: string
+        gameType:
+          type: string
+        wager:
+          type: integer
+        payout:
+          type: integer
+        won:
+          type: boolean
+        details:
+          type: object
+        createdAt:
+          type: string
+
+    BetActivity:
+      type: object
+      required: [id, playerName, gameTitle, gameType, wager, payout, won, createdAt]
+      properties:
+        id:
+          type: integer
+        playerName:
+          type: string
+        gameTitle:
+          type: string
+        gameType:
+          type: string
+        wager:
+          type: integer
+        payout:
+          type: integer
+        won:
+          type: boolean
+        createdAt:
+          type: string
+
+    ResolveInput:
+      type: object
+      required: [winningOptionId]
+      properties:
+        winningOptionId:
+          type: integer
+
+    ModAuthInput:
+      type: object
+      required: [password]
+      properties:
+        password:
+          type: string
+
+    ModAuthResult:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+
+    BalanceUpdate:
+      type: object
+      required: [balance]
+      properties:
+        balance:
+          type: integer
+
+    ModStats:
+      type: object
+      required: [totalPlayers, totalGames, openGames, totalBets, totalWagered]
+      properties:
+        totalPlayers:
+          type: integer
+        totalGames:
+          type: integer
+        openGames:
+          type: integer
+        totalBets:
+          type: integer
+        totalWagered:
+          type: integer

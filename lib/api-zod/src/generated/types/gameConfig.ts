@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HealthStatus {
-  status: string;
-}
+/**
+ * JSON config specific to game type
+ */
+export type GameConfig = { [key: string]: unknown };
